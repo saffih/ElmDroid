@@ -1,7 +1,8 @@
 package elmdroid.elmdroid
 
 /**
- * Created by saffi on 23/04/17.
+ *
+ * Copyright Joseph Hartal (Saffi)  23/04/17.
  */
 
 import android.app.Activity
@@ -10,13 +11,10 @@ import android.os.Handler
 import android.view.View
 import android.view.ViewGroup
 
-abstract class IMsg {
-}
-
 /********************************/
 // Cmd
 
-class Cmd<T: IMsg>(val lst:List<T>) : Iterable<T>{
+class Cmd<T>(val lst:List<T>) : Iterable<T>{
     override fun iterator(): Iterator<T> = lst.iterator()
     fun join(msg: T?) = if (msg == null) this else Cmd<T>(lst + msg)
     fun join(cmd: Cmd<T>?) = if (cmd == null) this else Cmd<T>(lst + cmd.lst)
@@ -30,11 +28,11 @@ class Cmd<T: IMsg>(val lst:List<T>) : Iterable<T>{
     operator fun plus(msg: T) = this.join(msg)
     operator fun plus(cmd: Cmd<T>?) = this.join(cmd)
 }
-fun <T: IMsg>T.Cmd(): Cmd<T> = Cmd(lst=listOf(this))
+fun <T>T.Cmd(): Cmd<T> = Cmd(lst=listOf(this))
 
 /********************************/
 // Sub
-class Sub<T: IMsg>(val lst:List<T>) : Iterable<T>{
+class Sub<T>(val lst:List<T>) : Iterable<T>{
     override fun iterator(): Iterator<T> = lst.iterator()
     fun join(msg: T?) = if (msg == null) this else Sub<T>(lst + msg)
     fun join(Sub: Sub<T>?) = if (Sub == null) this else Sub<T>(lst + Sub.lst)
@@ -46,7 +44,7 @@ class Sub<T: IMsg>(val lst:List<T>) : Iterable<T>{
     operator fun plus(msg: T) = this.join(msg)
     operator fun plus(Sub: Sub<T>?) = this.join(Sub)
 }
-fun <T: IMsg>T.Sub(): Sub<T> = Sub(lst=listOf(this))
+fun <T>T.Sub(): Sub<T> = Sub(lst=listOf(this))
 
 
 /*************************
@@ -74,21 +72,21 @@ typealias MC<M, MSG> = Pair<M, Cmd<MSG>>
 
 /**
  * ElmBase - Extending the POC.
- * Requires IMsg Modle and implementation of the 3 methods:
+ * Requires Msg Modle and implementation of the 3 methods:
  * init update and view
  * having Activity started and providing it.
  */
-abstract class ElmBase<M, MSG: IMsg> (open val me: Context){
+abstract class ElmBase<M, MSG> (open val me: Context){
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
-    val mainHandler by lazy { Handler(me.getMainLooper()) }
+    val mainHandler by lazy { Handler(me.mainLooper) }
 
     // empty typed lists.
     // we use that as defaults, can be used to compare as well
     val cmdNone = Cmd(listOf<MSG>())
     val subNone = Sub(listOf<MSG>())
 
-    // retModelCmd convert the IMsg to Cmd tag
+    // retModelCmd convert the Msg to Cmd tag
     fun retModelCmd(m:M, cmd:Cmd<MSG>) = MC(m, cmd )
     fun retModelCmd(m:M, msg:MSG) = MC(m, msg.Cmd() )
     fun retModelCmd(m:M) = MC<M,MSG>(m, cmdNone)
@@ -111,23 +109,47 @@ abstract class ElmBase<M, MSG: IMsg> (open val me: Context){
     open fun subscriptions(model: M) = subNone
 
     //In Elm - view : Model -> Html Msg
-    abstract fun view(model: M)
+    open fun view(model: M) {
+        view(model, model_viewed)
+    }
+
+    abstract fun  view(model: M, pre: M?)
 
 
+    inline fun <TM>checkView(setup:()->Unit, model:TM, pre:TM?, render:()->Unit){
+        if (model === pre) return
+        if (pre === null) {
+            setup()
+        }
+        render()
+    }
 
     // implementaton
     var mc:MC<M, MSG>?=null
     var model_viewed:M?=null
 
+    val model:M get () {
+        val model=mc!!.first
+        return model
+    }
+
+    fun callView(model:M){
+        view(model)
+        model_viewed = model
+    }
+
     // delegate to user update.
     fun updateWrap(msg: MSG, model: M): MC<M, MSG> {
-        return update(msg, model)
+        val res =  update(msg, model)
+        print("Msg: $msg \n Model: $model \n ===> $res")
+        return res
     }
 
     // act with msg
     fun cycleMsg(mc: MC<M, MSG>, msg: MSG): MC<M, MSG> {
         val (model, cmd) = mc
         val (updateModel, newCmd) = updateWrap(msg, model)
+        callView(updateModel)
         return MC<M, MSG>(updateModel, cmd+newCmd)
     }
 
@@ -139,18 +161,6 @@ abstract class ElmBase<M, MSG: IMsg> (open val me: Context){
         return res
     }
 
-    fun consumeSub(mc: MC<M,MSG>): MC<M,MSG> {
-        var curMC = mc
-        val (model,cmd)=curMC
-        val sub = subscriptions(model)
-        if (sub.lst.isEmpty()) return curMC
-
-        for ( msg in sub ){
-            curMC = cycleMsg(curMC, msg)
-        }
-        return curMC
-    }
-
     // no locks - done in single view thread
     fun dispatch( msg: MSG) {
         innerLoop(msg)
@@ -160,18 +170,28 @@ abstract class ElmBase<M, MSG: IMsg> (open val me: Context){
         mainHandler.post({dispatch(msg)})
     }
 
-
     // called by: mainloop, dispatch (form view or externaly via handler.)
     fun innerLoop(cbMsg: MSG?=null){
-        var curMC = mc!!
-        if (cbMsg!=null) curMC = cycleMsg(curMC , cbMsg)
-        curMC=consumeCmd(curMC)
-        curMC=consumeSub(curMC)
-        val (model,cmd)=curMC
-        view(model)
-        mc = curMC
-        // note what was done - time travel would have the m
-        model_viewed = model
+        val mc0=mc!!
+
+        val mc1 = if (cbMsg!=null) cycleMsg(mc0 , cbMsg) else mc0
+        var mc2 = mc1
+
+        val act =  block@{
+            for (i in 0..1000){
+                val cmd = mc2.second
+                if (cmd.lst.isEmpty()){
+                    return@block false
+                }
+                mc2=consumeCmd(mc2)
+            }
+            return@block true
+        }
+
+        val tooLong = act()
+        if (tooLong)  throw RuntimeException("too many commands "+mc2.second)
+
+        mc = mc2
     }
 
     fun mainLoop() {
@@ -180,3 +200,5 @@ abstract class ElmBase<M, MSG: IMsg> (open val me: Context){
         innerLoop()
     }
 }
+
+
