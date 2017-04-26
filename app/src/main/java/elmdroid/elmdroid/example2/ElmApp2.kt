@@ -151,7 +151,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
         return when (msg){
             is Msg.Fab.Clicked -> {
                 ret(model.copy(clicked = msg.v),
-                        Msg.Fab.ClickedDone(msg))
+                        cmdNone + Msg.Fab.ClickedDone(msg))
             }
             is Msg.Fab.ClickedDone ->
                 ret(model.copy(clicked = null))

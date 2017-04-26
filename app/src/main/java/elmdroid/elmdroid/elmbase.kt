@@ -8,16 +8,20 @@ package elmdroid.elmdroid
 import android.app.Activity
 import android.content.Context
 import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
+import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty
+import kotlin.reflect.KProperty
 
 /********************************/
 // Cmd
 
-class Cmd<T>(val lst:List<T>) : Iterable<T>{
+data class Cmd<T>(val lst:List<T>) : Iterable<T>{
     override fun iterator(): Iterator<T> = lst.iterator()
-    fun join(msg: T?) = if (msg == null) this else Cmd<T>(lst + msg)
     fun join(cmd: Cmd<T>?) = if (cmd == null) this else Cmd<T>(lst + cmd.lst)
+    fun join(msg: T?) = if (msg == null) this else Cmd<T>(lst + msg)
 
     fun split() = Pair(
             // Msg part
@@ -25,26 +29,30 @@ class Cmd<T>(val lst:List<T>) : Iterable<T>{
             // Cmd msg part. "batch" list
             if (lst.isEmpty()) this else Cmd(lst.drop(1)))
 
-    operator fun plus(msg: T) = this.join(msg)
     operator fun plus(cmd: Cmd<T>?) = this.join(cmd)
+    operator fun plus(msg: T) = this.join(msg)
 }
 fun <T>T.Cmd(): Cmd<T> = Cmd(lst=listOf(this))
 
+
+//Wmodel / wraps proxy the model,  change the propery as usual. it would also hold
+//fun <M,  MSG>Pair<M, Cmd<MSG>>.join(other:Pair<M, Cmd<MSG>>) = Pair<M, Cmd<MSG>>()
+
 /********************************/
-// Sub
-class Sub<T>(val lst:List<T>) : Iterable<T>{
-    override fun iterator(): Iterator<T> = lst.iterator()
-    fun join(msg: T?) = if (msg == null) this else Sub<T>(lst + msg)
-    fun join(Sub: Sub<T>?) = if (Sub == null) this else Sub<T>(lst + Sub.lst)
-
-    fun split() = Pair(
-            if (lst.isEmpty()) null else lst.first(),
-            if (lst.isEmpty()) this else Sub(lst.drop(1)))
-
-    operator fun plus(msg: T) = this.join(msg)
-    operator fun plus(Sub: Sub<T>?) = this.join(Sub)
-}
-fun <T>T.Sub(): Sub<T> = Sub(lst=listOf(this))
+//// Sub
+//data class Sub<T>(val lst:List<T>) : Iterable<T>{
+//    override fun iterator(): Iterator<T> = lst.iterator()
+//    fun join(msg: T?) = if (msg == null) this else Sub<T>(lst + msg)
+//    fun join(Sub: Sub<T>?) = if (Sub == null) this else Sub<T>(lst + Sub.lst)
+//
+//    fun split() = Pair(
+//            if (lst.isEmpty()) null else lst.first(),
+//            if (lst.isEmpty()) this else Sub(lst.drop(1)))
+//
+//    operator fun plus(msg: T) = this.join(msg)
+//    operator fun plus(Sub: Sub<T>?) = this.join(Sub)
+//}
+//fun <T>T.Sub(): Sub<T> = Sub(lst=listOf(this))
 
 
 /*************************
@@ -76,15 +84,16 @@ typealias MC<M, MSG> = Pair<M, Cmd<MSG>>
  * init update and view
  * having Activity started and providing it.
  */
-abstract class ElmBase<M, MSG> (open val me: Context){
+abstract class ElmBase<M, MSG> (open val me: Context?){
+
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
-    val mainHandler by lazy { Handler(me.mainLooper) }
+    val mainHandler by lazy { Handler(me?.mainLooper) }
 
     // empty typed lists.
     // we use that as defaults, can be used to compare as well
     val cmdNone = Cmd(listOf<MSG>())
-    val subNone = Sub(listOf<MSG>())
+//    val subNone = Sub(listOf<MSG>())
 
     // retModelCmd convert the Msg to Cmd tag
     fun retModelCmd(m:M, cmd:Cmd<MSG>) = MC(m, cmd )
@@ -92,7 +101,7 @@ abstract class ElmBase<M, MSG> (open val me: Context){
     fun retModelCmd(m:M) = MC<M,MSG>(m, cmdNone)
 
     // return model parts - reduced.
-    fun <T>ret(m:T, cmd:Cmd<MSG>) = MC<T,MSG>(m, cmd)
+    fun <T>ret(m:T, useCmdNonePlusMsgs:Cmd<MSG>) = MC<T,MSG>(m, useCmdNonePlusMsgs)
     fun <T>ret(m:T, msg:MSG) = MC<T,MSG>(m, msg.Cmd())
     fun <T>ret(m:T) = MC<T,MSG>(m, cmdNone)
 
@@ -103,10 +112,10 @@ abstract class ElmBase<M, MSG> (open val me: Context){
     abstract fun init( ) : MC<M,MSG>
 
     // In Elm - update : Msg -> Model -> (Model, Cmd Msg)
-    open fun update(msg: MSG, model: M) = retModelCmd(model)
+    abstract fun update(msg: MSG, model: M) : MC<M,MSG> //= retModelCmd(model)
 
     // In Elm - sub : subscriptions : Model -> Sub Msg
-    open fun subscriptions(model: M) = subNone
+//    open fun subscriptions(model: M) = subNone
 
     //In Elm - view : Model -> Html Msg
     open fun view(model: M) {
@@ -194,11 +203,10 @@ abstract class ElmBase<M, MSG> (open val me: Context){
         mc = mc2
     }
 
-    fun mainLoop() {
+    fun mainLoop(): ElmBase<M, MSG> {
         mc=init()
 
         innerLoop()
+        return this
     }
 }
-
-
