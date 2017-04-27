@@ -58,7 +58,7 @@ class ExampleUnitTest {
 
 
     class App : ElmBase<Model, Msg>(me = null) {
-        override fun init(): MC<Model, Msg> =
+        override fun init() =
                 //                ret(Model(A(0),B(1)))
                 ret(Model(), Msg.Reset())
 
@@ -66,7 +66,7 @@ class ExampleUnitTest {
 
         fun last() = res
 
-        override fun update(msg: Msg, model: Model): MC<Model, Msg> {
+        override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
             return when (msg) {
                 is Msg.Next -> {
                     if (msg.steps <= 0) {
@@ -87,13 +87,10 @@ class ExampleUnitTest {
             }
         }
 
-        private fun update(msg: Msg.Update, model: A): MC<A, Msg> {
-            return ret(model.copy(v = msg.model.b.v))
-        }
+        private fun update(msg: Msg.Update, model: A)  = ret(model.copy(v = msg.model.b.v))
 
-        private fun update(msg: Msg.Update, model: B): MC<B, Msg> {
-            return ret(model.copy(v = msg.model.a.v + model.v))
-        }
+        private fun update(msg: Msg.Update, model: B) = ret(model.copy(v = msg.model.a.v + model.v))
+
 
         override fun view(model: Model, pre: Model?) {
             val setup = { res = 0 }
@@ -101,9 +98,5 @@ class ExampleUnitTest {
                 res = model.b.v
             }
         }
-
-
     }
-
-
 }

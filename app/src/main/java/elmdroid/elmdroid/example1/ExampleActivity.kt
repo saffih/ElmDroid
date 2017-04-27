@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.widget.TextView
 import android.widget.ToggleButton
 import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.MC
+import elmdroid.elmdroid.Que
 
 import elmdroid.elmdroid.R
 
@@ -27,9 +27,9 @@ sealed class Msg {
 }
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
-    override fun init(): MC<Model, Msg> { return ret(Model(), Msg.Init) }
+    override fun init() = ret(Model(), Msg.Init)
 
-    override fun update(msg: Msg, model: Model): MC<Model, Msg> {
+    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
             is Msg.Init -> ret(model)
             is Msg.Activity -> {
@@ -41,7 +41,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
         }
     }
 
-    fun update(msg: Msg.Activity, model: MActivity) : MC<MActivity, Msg>  {
+    fun update(msg: Msg.Activity, model: MActivity): Pair<MActivity, Que<Msg>> {
         return when (msg) {
             is Msg.Activity.Greated -> {
                 ret(model.copy(greeting = msg.v))

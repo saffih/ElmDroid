@@ -11,7 +11,7 @@ import android.support.v7.widget.Toolbar
 import android.view.MenuItem
 import android.view.View
 import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.MC
+import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
 
 /**
@@ -97,9 +97,9 @@ data class MDrawer (val i: DrawerOption = DrawerOption.closed)
 
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , NavigationView.OnNavigationItemSelectedListener {
-    override fun init(): MC<Model, Msg> = ret(Model(), Msg.Init)
+    override fun init() = ret(Model(), Msg.Init)
 
-    override fun update(msg: Msg, model: Model): MC<Model, Msg> {
+    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
             is Msg.Init -> ret(model)
             else -> {
@@ -110,7 +110,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
     }
 
 
-    fun update(msg: Msg, model: MActivity): MC<MActivity, Msg> {
+    fun update(msg: Msg, model: MActivity): Pair<MActivity, Que<Msg>> {
         return when (msg){
             Msg.Init -> ret(model)
 
@@ -127,7 +127,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
         }
     }
 
-    fun  update(msg: Msg.Option, model: MOptions): MC<MOptions, Msg> {
+    fun  update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
         return when (msg){
             is Msg.Option.Navigation ->
                 ret (model.copy(navOption = msg.item))
@@ -140,14 +140,14 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
         }
     }
 
-    fun update(msg: Msg.Option.Drawer, model: MDrawer) : MC<MDrawer, Msg> {
+    fun update(msg: Msg.Option.Drawer, model: MDrawer): Pair<MDrawer, Que<Msg>> {
         return when(msg.item){
             DrawerOption.opened -> ret(model.copy(i = DrawerOption.opened))
             DrawerOption.closed -> ret(model.copy(i = DrawerOption.closed))
         }
     }
 
-    fun update(msg: Msg.Fab, model:MFab ): MC<MFab, Msg> {
+    fun update(msg: Msg.Fab, model:MFab ): Pair<MFab, Que<Msg>> {
         return when (msg){
             is Msg.Fab.Clicked -> {
                 ret(model.copy(clicked = msg.v),

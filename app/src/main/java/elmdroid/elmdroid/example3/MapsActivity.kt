@@ -8,7 +8,7 @@ import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.MC
+import elmdroid.elmdroid.Que
 
 import elmdroid.elmdroid.R
 
@@ -71,9 +71,9 @@ data class MMap (val googleMap : GoogleMap? = null)
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me), OnMapReadyCallback {
 
-    override fun init(): MC<Model, Msg> = ret(Model(), Msg.Init)
+    override fun init()= ret(Model(), Msg.Init)
 
-    override fun update(msg: Msg, model: Model): MC<Model, Msg> {
+    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
             is Msg.Init -> ret(model)
             is Msg.Activity-> {
@@ -84,7 +84,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me), OnMa
         }
     }
 
-    fun update(msg: Msg.Activity, model: MActivity): MC<MActivity, Msg> {
+    fun update(msg: Msg.Activity, model: MActivity): Pair<MActivity, Que<Msg>> {
 //        return ret(model)
         return when(msg){
 
@@ -95,7 +95,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me), OnMa
         }
     }
 
-    fun  update(msg: Msg.Activity.Map, model: MMap): MC<MMap, Msg> {
+    fun  update(msg: Msg.Activity.Map, model: MMap): Pair<MMap, Que<Msg>> {
         return when (msg){
 
             is Msg.Activity.Map.Ready -> {

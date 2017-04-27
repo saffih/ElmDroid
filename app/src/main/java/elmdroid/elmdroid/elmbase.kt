@@ -92,23 +92,23 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 //    val subNone = Sub(listOf<MSG>())
 
     // retModelQue convert the Msg to Que tag
-    fun retModelQue(m:M, que: Que<MSG>) = MC(m, que)
-    fun retModelQue(m:M, msg:MSG) = MC(m, msg.que() )
-    fun retModelQue(m:M) = MC<M,MSG>(m, noneQue)
+    fun retModelQue(m:M, que: Que<MSG>) = Pair(m, que)
+    fun retModelQue(m:M, msg:MSG) = Pair(m, msg.que() )
+    fun retModelQue(m:M) = Pair<M,Que<MSG>>(m, noneQue)
 
     // return model parts - reduced.
-    fun <T>ret(m:T, useQueNonePlusMsgs: Que<MSG>) = MC<T,MSG>(m, useQueNonePlusMsgs)
-    fun <T>ret(m:T, msg:MSG) = MC<T,MSG>(m, msg.que())
-    fun <T>ret(m:T) = MC<T,MSG>(m, noneQue)
+    fun <T>ret(m:T, useQueNonePlusMsgs: Que<MSG>) = Pair<T,Que<MSG>>(m, useQueNonePlusMsgs)
+    fun <T>ret(m:T, msg:MSG) = Pair<T,Que<MSG>>(m, msg.que())
+    fun <T>ret(m:T) = Pair<T,Que<MSG>>(m, noneQue)
 
 
 
     // Mandatory methods
     // Elm Init - init : (Model, Que Msg)
-    abstract fun init( ) : MC<M,MSG>
+    abstract fun init( ) : Pair<M,Que<MSG>>
 
     // In Elm - update : Msg -> Model -> (Model, Que Msg)
-    abstract fun update(msg: MSG, model: M) : MC<M,MSG> //= retModelQue(model)
+    abstract fun update(msg: MSG, model: M) : Pair<M,Que<MSG>> //= retModelQue(model)
 
     // In Elm - sub : subscriptions : Model -> Sub Msg
 //    open fun subscriptions(model: M) = subNone
@@ -130,7 +130,7 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
     }
 
     // implementaton
-    var mc: MC<M, MSG>?=null
+    var mc: Pair<M, Que<MSG>>?=null
     var model_viewed:M?=null
 
     val model:M get () {
@@ -144,21 +144,21 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
     }
 
     // delegate to user update.
-    fun updateWrap(msg: MSG, model: M): MC<M, MSG> {
+    fun updateWrap(msg: MSG, model: M): Pair<M, Que<MSG>> {
         val res =  update(msg, model)
         print("Msg: $msg \n Model: $model \n ===> $res")
         return res
     }
 
     // act with msg
-    fun cycleMsg(mc: MC<M, MSG>, msg: MSG): MC<M, MSG> {
+    fun cycleMsg(mc: Pair<M, Que<MSG>>, msg: MSG): Pair<M, Que<MSG>> {
         val (model, cmdQue) = mc
         val (updateModel, newQue) = updateWrap(msg, model)
         callView(updateModel)
-        return MC<M, MSG>(updateModel, cmdQue + newQue)
+        return Pair<M, Que<MSG>>(updateModel, cmdQue + newQue)
     }
 
-    fun consumeFromQue(mc: MC<M, MSG>): MC<M, MSG> {
+    fun consumeFromQue(mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
         val (model,cmdQue)=mc
         val (msg, restQue) = cmdQue.split()
         val mc2 = retModelQue(model, restQue)
