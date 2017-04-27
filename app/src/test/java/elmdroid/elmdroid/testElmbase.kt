@@ -24,29 +24,29 @@ import io.kotlintest.specs.FunSpec
 
 
 
-class CmdTest: FunSpec() {
-    val cmdNone = Cmd(listOf<Int>())
+class QueTest : FunSpec() {
+    val noneQue = Que(listOf<Int>())
     init {
-        val p=1.Cmd().split()
-        val noneSplit=cmdNone.split()
-        test("Cmd split operations ") {
-            p shouldEqual  Pair(1, cmdNone)
-            noneSplit shouldEqual Pair(null, cmdNone)
+        val p=1.que().split()
+        val noneSplit= noneQue.split()
+        test("Que split operations ") {
+            p shouldEqual  Pair(1, noneQue)
+            noneSplit shouldEqual Pair(null, noneQue)
         }
 
-        test("Cmd join operations ") {
-            1.Cmd().lst.size shouldBe 1
-            cmdNone.lst.size shouldBe 0
-            (cmdNone + 1.Cmd() + 1.Cmd()).lst.size shouldBe 2
-            (1.Cmd() + 1.Cmd()).lst.size shouldBe 2
-            (1.Cmd() + 1.Cmd() + cmdNone).lst.size shouldBe 2
-            cmdNone.lst.size shouldBe 0
+        test("Que join operations ") {
+            1.que().lst.size shouldBe 1
+            noneQue.lst.size shouldBe 0
+            (noneQue + 1.que() + 1.que()).lst.size shouldBe 2
+            (1.que() + 1.que()).lst.size shouldBe 2
+            (1.que() + 1.que() + noneQue).lst.size shouldBe 2
+            noneQue.lst.size shouldBe 0
         }
 
-        test("Cmd order") {
-            (1.Cmd() + 2 + 3).lst.size shouldBe 3
-            (1.Cmd() + 2 + 3).lst shouldBe listOf(1,2,3)
-            (3.Cmd() + 2 + 1).lst shouldBe listOf(3,2,1)
+        test("Que order") {
+            (1.que() + 2 + 3).lst.size shouldBe 3
+            (1.que() + 2 + 3).lst shouldBe listOf(1,2,3)
+            (3.que() + 2 + 1).lst shouldBe listOf(3,2,1)
         }
     }
 }
@@ -82,11 +82,11 @@ class CmdTest: FunSpec() {
 //                is Msg.Update -> {
 //                    val (modelA, noCmdA) = update(msg, model.a)
 //                    val (modelB, noCmdB) = update(msg, model.b)
-//                    assert(noCmdA == cmdNone)
-//                    assert(noCmdB == cmdNone)
+//                    assert(noCmdA == noneQue)
+//                    assert(noCmdB == noneQue)
 //                    ret(model.copy(a = modelA, b = modelB))
 //                    // or
-//                    // ret(model.copy(a=modelA, b=modelB, cmdNone+noCmdA+noCmdB))
+//                    // ret(model.copy(a=modelA, b=modelB, noneQue+noCmdA+noCmdB))
 //                }
 //                is Msg.Reset -> ret(Model(a = A(0), b = B(1)))
 //            }

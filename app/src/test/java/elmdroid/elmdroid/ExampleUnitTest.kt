@@ -73,15 +73,15 @@ class ExampleUnitTest {
                         ret(model)
                     }
                     else {
-                        ret(model, cmdNone + Msg.Update(model)+Msg.Next(msg.steps-1))
+                        ret(model, noneQue + Msg.Update(model)+Msg.Next(msg.steps-1))
                     }
                 }
                 is Msg.Update -> {
                     val (modelA, couldBeCommandsFromA) = update(msg, model.a)
                     val (modelB, couldBeCommandsFromB) = update(msg, model.b)
                     ret(model.copy(a=modelA, b=modelB),
-                            // just showing that we can concatinate lots of msgs after cmdNone
-                            cmdNone + couldBeCommandsFromA + couldBeCommandsFromB)
+                            // just showing that we can concatinate lots of msgs after noneQue
+                            noneQue + couldBeCommandsFromA + couldBeCommandsFromB)
                 }
                 is Msg.Reset -> ret(Model(a = A(0), b = B(1)))
             }

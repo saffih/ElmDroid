@@ -127,7 +127,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
         }
     }
 
-    fun  update(msg: Msg.Option, model: MOptions):MC<MOptions, Msg> {
+    fun  update(msg: Msg.Option, model: MOptions): MC<MOptions, Msg> {
         return when (msg){
             is Msg.Option.Navigation ->
                 ret (model.copy(navOption = msg.item))
@@ -151,7 +151,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
         return when (msg){
             is Msg.Fab.Clicked -> {
                 ret(model.copy(clicked = msg.v),
-                        cmdNone + Msg.Fab.ClickedDone(msg))
+                        noneQue + Msg.Fab.ClickedDone(msg))
             }
             is Msg.Fab.ClickedDone ->
                 ret(model.copy(clicked = null))

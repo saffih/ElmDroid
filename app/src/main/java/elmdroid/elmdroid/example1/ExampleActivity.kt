@@ -8,7 +8,6 @@ import elmdroid.elmdroid.ElmBase
 import elmdroid.elmdroid.MC
 
 import elmdroid.elmdroid.R
-import kotlin.coroutines.experimental.EmptyCoroutineContext.plus
 
 // POJO
 class Greating(val greet:String)
@@ -42,7 +41,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
         }
     }
 
-    fun update(msg: Msg.Activity, model: MActivity) :MC<MActivity, Msg>  {
+    fun update(msg: Msg.Activity, model: MActivity) : MC<MActivity, Msg>  {
         return when (msg) {
             is Msg.Activity.Greated -> {
                 ret(model.copy(greeting = msg.v))

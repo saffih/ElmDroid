@@ -8,35 +8,31 @@ package elmdroid.elmdroid
 import android.app.Activity
 import android.content.Context
 import android.os.Handler
-import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
-import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.KProperty
 
 /********************************/
-// Cmd
+// que Que
 
-data class Cmd<T>(val lst:List<T>) : Iterable<T>{
+data class Que<T>(val lst:List<T>) : Iterable<T>{
     override fun iterator(): Iterator<T> = lst.iterator()
-    fun join(cmd: Cmd<T>?) = if (cmd == null) this else Cmd<T>(lst + cmd.lst)
-    fun join(msg: T?) = if (msg == null) this else Cmd<T>(lst + msg)
+    fun join(que: Que<T>?) = if (que == null) this else Que<T>(lst + que.lst)
+    fun join(msg: T?) = if (msg == null) this else Que<T>(lst + msg)
 
     fun split() = Pair(
             // Msg part
             if (lst.isEmpty()) null else lst.first(),
-            // Cmd msg part. "batch" list
-            if (lst.isEmpty()) this else Cmd(lst.drop(1)))
+            // Que msg part. "batch" list
+            if (lst.isEmpty()) this else Que(lst.drop(1)))
 
-    operator fun plus(cmd: Cmd<T>?) = this.join(cmd)
+    operator fun plus(que: Que<T>?) = this.join(que)
     operator fun plus(msg: T) = this.join(msg)
 }
-fun <T>T.Cmd(): Cmd<T> = Cmd(lst=listOf(this))
+fun <T>T.que(): Que<T> = Que(lst=listOf(this))
 
 
 //Wmodel / wraps proxy the model,  change the propery as usual. it would also hold
-//fun <M,  MSG>Pair<M, Cmd<MSG>>.join(other:Pair<M, Cmd<MSG>>) = Pair<M, Cmd<MSG>>()
+//fun <M,  MSG>Pair<M, Que<MSG>>.join(other:Pair<M, Que<MSG>>) = Pair<M, Que<MSG>>()
 
 /********************************/
 //// Sub
@@ -76,7 +72,7 @@ sealed class ContentView
 
 
 // MC for internal use.
-typealias MC<M, MSG> = Pair<M, Cmd<MSG>>
+typealias MC<M, MSG> = Pair<M, Que<MSG>>
 
 /**
  * ElmBase - Extending the POC.
@@ -92,27 +88,27 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
     // empty typed lists.
     // we use that as defaults, can be used to compare as well
-    val cmdNone = Cmd(listOf<MSG>())
+    val noneQue = Que(listOf<MSG>())
 //    val subNone = Sub(listOf<MSG>())
 
-    // retModelCmd convert the Msg to Cmd tag
-    fun retModelCmd(m:M, cmd:Cmd<MSG>) = MC(m, cmd )
-    fun retModelCmd(m:M, msg:MSG) = MC(m, msg.Cmd() )
-    fun retModelCmd(m:M) = MC<M,MSG>(m, cmdNone)
+    // retModelQue convert the Msg to Que tag
+    fun retModelQue(m:M, que: Que<MSG>) = MC(m, que)
+    fun retModelQue(m:M, msg:MSG) = MC(m, msg.que() )
+    fun retModelQue(m:M) = MC<M,MSG>(m, noneQue)
 
     // return model parts - reduced.
-    fun <T>ret(m:T, useCmdNonePlusMsgs:Cmd<MSG>) = MC<T,MSG>(m, useCmdNonePlusMsgs)
-    fun <T>ret(m:T, msg:MSG) = MC<T,MSG>(m, msg.Cmd())
-    fun <T>ret(m:T) = MC<T,MSG>(m, cmdNone)
+    fun <T>ret(m:T, useQueNonePlusMsgs: Que<MSG>) = MC<T,MSG>(m, useQueNonePlusMsgs)
+    fun <T>ret(m:T, msg:MSG) = MC<T,MSG>(m, msg.que())
+    fun <T>ret(m:T) = MC<T,MSG>(m, noneQue)
 
 
 
     // Mandatory methods
-    // Elm Init - init : (Model, Cmd Msg)
+    // Elm Init - init : (Model, Que Msg)
     abstract fun init( ) : MC<M,MSG>
 
-    // In Elm - update : Msg -> Model -> (Model, Cmd Msg)
-    abstract fun update(msg: MSG, model: M) : MC<M,MSG> //= retModelCmd(model)
+    // In Elm - update : Msg -> Model -> (Model, Que Msg)
+    abstract fun update(msg: MSG, model: M) : MC<M,MSG> //= retModelQue(model)
 
     // In Elm - sub : subscriptions : Model -> Sub Msg
 //    open fun subscriptions(model: M) = subNone
@@ -134,7 +130,7 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
     }
 
     // implementaton
-    var mc:MC<M, MSG>?=null
+    var mc: MC<M, MSG>?=null
     var model_viewed:M?=null
 
     val model:M get () {
@@ -156,17 +152,17 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
     // act with msg
     fun cycleMsg(mc: MC<M, MSG>, msg: MSG): MC<M, MSG> {
-        val (model, cmd) = mc
-        val (updateModel, newCmd) = updateWrap(msg, model)
+        val (model, cmdQue) = mc
+        val (updateModel, newQue) = updateWrap(msg, model)
         callView(updateModel)
-        return MC<M, MSG>(updateModel, cmd+newCmd)
+        return MC<M, MSG>(updateModel, cmdQue + newQue)
     }
 
-    fun consumeCmd(mc: MC<M, MSG>): MC<M, MSG> {
-        val (model,cmd)=mc
-        val (msg, restCmd) = cmd.split()
-        val nmc = retModelCmd(model, restCmd)
-        val res = if (msg==null)  nmc  else cycleMsg(nmc, msg)
+    fun consumeFromQue(mc: MC<M, MSG>): MC<M, MSG> {
+        val (model,cmdQue)=mc
+        val (msg, restQue) = cmdQue.split()
+        val mc2 = retModelQue(model, restQue)
+        val res = if (msg==null)  mc2  else cycleMsg(mc2, msg)
         return res
     }
 
@@ -188,11 +184,11 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
         val act =  block@{
             for (i in 0..1000){
-                val cmd = mc2.second
-                if (cmd.lst.isEmpty()){
+                val que = mc2.second
+                if (que.lst.isEmpty()){
                     return@block false
                 }
-                mc2=consumeCmd(mc2)
+                mc2= consumeFromQue(mc2)
             }
             return@block true
         }
