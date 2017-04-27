@@ -160,36 +160,35 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         return res
     }
 
-    // no locks - done in single view thread
-    // it shouldbe "locked" single inner loop and dispatch at a time.
-    fun dispatch( msg: MSG) {
-        innerLoop(msg)
-    }
 
     public fun postDispatch ( msg: MSG) {
         mainHandler.post({dispatch(msg)})
     }
 
-    // called by: mainloop, dispatch (form view or externaly via handler.)
-    private fun innerLoop(cbMsg: MSG?=null){
-        val lastModel = mainCompute(cbMsg)
-        callView(lastModel)
+    // no locks - done in single view thread
+    // it should be "locked" single inner loop and dispatch at a time.
+    fun dispatch(msg: MSG?=null){
+        dispatch( msg?.que()?: noneQue )
+    }
 
+    private fun dispatch(que: Que<MSG>){
+        val newMC = mainCompute(que, mc!!)
+        val model = newMC.first
+        callView(model)
+        mc=newMC
     }
 
     private var cnt=0
-    private fun mainCompute(cbMsg: MSG?): M {
+    private fun mainCompute(que: Que<MSG>, mc:Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
         if (cnt != 0) throw RuntimeException("concurrent innerloop! dispatch was called instead of postDispatch")
         cnt += 1
-        val mc0 = mc!!
-        val mc1 = if (cbMsg != null) cycleMsg(mc0, cbMsg) else mc0
-        var mc2 = mc1
-
+        val (model, que0) = mc
+        var mc2 = ret(model, que0 + que)
         // consume commands
         val act = block@ {
             for (i in 0..1000) {
-                val que = mc2.second
-                if (que.lst.isEmpty()) {
+                val que2 = mc2.second
+                if (que2.lst.isEmpty()) {
                     return@block false
                 }
                 mc2 = consumeFromQue(mc2)
@@ -201,18 +200,15 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         val tooLong = act()
         if (tooLong) throw RuntimeException("too many commands " + mc2.second)
 
-        val lastModel = mc2.first
-        mc = mc2
         cnt -= 1
 
-        return lastModel
+        return mc2
     }
 
     public fun start(): ElmBase<M, MSG> {
         assert(mc==null) { "Check if started more then once." }
         mc=init()
-
-        innerLoop()
+        dispatch()
         return this
     }
 }
