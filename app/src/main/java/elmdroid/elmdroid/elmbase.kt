@@ -150,19 +150,23 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         return res
     }
 
+    val onebyone :Boolean =  false
+
     // act with msg
     fun cycleMsg(mc: Pair<M, Que<MSG>>, msg: MSG): Pair<M, Que<MSG>> {
         val (model, cmdQue) = mc
         val (updateModel, newQue) = updateWrap(msg, model)
-        callView(updateModel)
+        // view could be called here unless we want to have b batch updates first.
+        if (onebyone) callView(updateModel)
+
         return Pair<M, Que<MSG>>(updateModel, cmdQue + newQue)
     }
 
     fun consumeFromQue(mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
-        val (model,cmdQue)=mc
+        val (model,cmdQue) = mc
         val (msg, restQue) = cmdQue.split()
         val mc2 = retModelQue(model, restQue)
-        val res = if (msg==null)  mc2  else cycleMsg(mc2, msg)
+        val res = if (msg==null) mc2 else cycleMsg(mc2, msg)
         return res
     }
 
@@ -182,19 +186,24 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         val mc1 = if (cbMsg!=null) cycleMsg(mc0 , cbMsg) else mc0
         var mc2 = mc1
 
+        // consume commands
         val act =  block@{
             for (i in 0..1000){
                 val que = mc2.second
                 if (que.lst.isEmpty()){
                     return@block false
                 }
-                mc2= consumeFromQue(mc2)
+                mc2 = consumeFromQue(mc2)
             }
             return@block true
         }
 
+
         val tooLong = act()
         if (tooLong)  throw RuntimeException("too many commands "+mc2.second)
+
+        val lastModel =  mc2.first
+        callView(lastModel)
 
         mc = mc2
     }
