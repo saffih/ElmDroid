@@ -61,12 +61,12 @@ sealed class ContentView
     data class ResId(val resId: Int) :  ContentView()
     object Done : ContentView()
 
-    fun setContentViewIn(me:Activity) =
+    fun setContentViewIn(me: Activity) =
             when(this){
                 is ViewNoParams -> me.setContentView(this.v)
                 is ViewParams -> me.setContentView(this.v, this.lp)
                 is ResId -> me.setContentView(this.resId)
-                is ContentView.Done -> {}
+                is Done -> {}
             }
 }
 
@@ -84,34 +84,28 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
-    val mainHandler by lazy { Handler(me?.mainLooper) }
+    private val mainHandler by lazy { Handler(me?.mainLooper) }
 
     // empty typed lists.
     // we use that as defaults, can be used to compare as well
     val noneQue = Que(listOf<MSG>())
 //    val subNone = Sub(listOf<MSG>())
 
-    // retModelQue convert the Msg to Que tag
-    fun retModelQue(m:M, que: Que<MSG>) = Pair(m, que)
-    fun retModelQue(m:M, msg:MSG) = Pair(m, msg.que() )
-    fun retModelQue(m:M) = Pair<M,Que<MSG>>(m, noneQue)
-
     // return model parts - reduced.
-    fun <T>ret(m:T, useQueNonePlusMsgs: Que<MSG>) = Pair<T,Que<MSG>>(m, useQueNonePlusMsgs)
-    fun <T>ret(m:T, msg:MSG) = Pair<T,Que<MSG>>(m, msg.que())
-    fun <T>ret(m:T) = Pair<T,Que<MSG>>(m, noneQue)
+    fun <T>ret(m:T, useQueNonePlusMsgs: Que<MSG>) = Pair<T, Que<MSG>>(m, useQueNonePlusMsgs)
+    fun <T>ret(m:T, msg:MSG) = Pair<T, Que<MSG>>(m, msg.que())
+    fun <T>ret(m:T) = Pair<T, Que<MSG>>(m, noneQue)
 
 
 
     // Mandatory methods
     // Elm Init - init : (Model, Que Msg)
-    abstract fun init( ) : Pair<M,Que<MSG>>
+    abstract fun init( ) : Pair<M, Que<MSG>>
 
     // In Elm - update : Msg -> Model -> (Model, Que Msg)
-    abstract fun update(msg: MSG, model: M) : Pair<M,Que<MSG>> //= retModelQue(model)
+    abstract fun update(msg: MSG, model: M) : Pair<M, Que<MSG>>
 
     // In Elm - sub : subscriptions : Model -> Sub Msg
-//    open fun subscriptions(model: M) = subNone
 
     //In Elm - view : Model -> Html Msg
     open fun view(model: M) {
@@ -138,68 +132,84 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         return model
     }
 
-    fun callView(model:M){
+    private fun callView(model:M){
         view(model)
         model_viewed = model
     }
 
     // delegate to user update.
-    fun updateWrap(msg: MSG, model: M): Pair<M, Que<MSG>> {
+    private fun updateWrap(msg: MSG, model: M): Pair<M, Que<MSG>> {
         val res =  update(msg, model)
         print("Msg: $msg \n Model: $model \n ===> $res")
         return res
     }
 
     // act with msg
-    fun cycleMsg(mc: Pair<M, Que<MSG>>, msg: MSG): Pair<M, Que<MSG>> {
+    private fun cycleMsg(mc: Pair<M, Que<MSG>>, msg: MSG): Pair<M, Que<MSG>> {
         val (model, cmdQue) = mc
         val (updateModel, newQue) = updateWrap(msg, model)
-        callView(updateModel)
+
         return Pair<M, Que<MSG>>(updateModel, cmdQue + newQue)
     }
 
-    fun consumeFromQue(mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
-        val (model,cmdQue)=mc
+    private fun consumeFromQue(mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
+        val (model,cmdQue) = mc
         val (msg, restQue) = cmdQue.split()
-        val mc2 = retModelQue(model, restQue)
-        val res = if (msg==null)  mc2  else cycleMsg(mc2, msg)
+        val mc2 = Pair(model, restQue)
+        val res = if (msg==null) mc2 else cycleMsg(mc2, msg)
         return res
     }
 
     // no locks - done in single view thread
+    // it shouldbe "locked" single inner loop and dispatch at a time.
     fun dispatch( msg: MSG) {
         innerLoop(msg)
     }
 
-    fun postDispatch ( msg: MSG) {
+    public fun postDispatch ( msg: MSG) {
         mainHandler.post({dispatch(msg)})
     }
 
     // called by: mainloop, dispatch (form view or externaly via handler.)
-    fun innerLoop(cbMsg: MSG?=null){
-        val mc0=mc!!
+    private fun innerLoop(cbMsg: MSG?=null){
+        val lastModel = mainCompute(cbMsg)
+        callView(lastModel)
 
-        val mc1 = if (cbMsg!=null) cycleMsg(mc0 , cbMsg) else mc0
+    }
+
+    private var cnt=0
+    private fun mainCompute(cbMsg: MSG?): M {
+        if (cnt != 0) throw RuntimeException("concurrent innerloop! dispatch was called instead of postDispatch")
+        cnt += 1
+        val mc0 = mc!!
+        val mc1 = if (cbMsg != null) cycleMsg(mc0, cbMsg) else mc0
         var mc2 = mc1
 
-        val act =  block@{
-            for (i in 0..1000){
+        // consume commands
+        val act = block@ {
+            for (i in 0..1000) {
                 val que = mc2.second
-                if (que.lst.isEmpty()){
+                if (que.lst.isEmpty()) {
                     return@block false
                 }
-                mc2= consumeFromQue(mc2)
+                mc2 = consumeFromQue(mc2)
             }
             return@block true
         }
 
-        val tooLong = act()
-        if (tooLong)  throw RuntimeException("too many commands "+mc2.second)
 
+        val tooLong = act()
+        if (tooLong) throw RuntimeException("too many commands " + mc2.second)
+
+        val lastModel = mc2.first
         mc = mc2
+        cnt -= 1
+
+        return lastModel
     }
 
-    fun mainLoop(): ElmBase<M, MSG> {
+    public fun start(): ElmBase<M, MSG> {
+        assert(mc==null) { "Check if started more then once." }
         mc=init()
 
         innerLoop()

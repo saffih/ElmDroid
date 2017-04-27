@@ -24,7 +24,7 @@ class ExampleUnitTest {
     @Throws(Exception::class)
     fun testFibo() {
         val app = App()
-        app.mainLoop()
+        app.start()
         assertEquals(app.last(), 1)
         app.dispatch(msg = Msg.Next())
         assertEquals(app.last(), 1)

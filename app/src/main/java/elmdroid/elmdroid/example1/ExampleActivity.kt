@@ -90,6 +90,6 @@ class ExampleActivity : AppCompatActivity() {
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.mainLoop()
+        app.start()
     }
 }

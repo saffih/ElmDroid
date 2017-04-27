@@ -11,7 +11,7 @@ class Example2 : AppCompatActivity() {
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.mainLoop()
+        app.start()
     }
 
     override fun onBackPressed() {
