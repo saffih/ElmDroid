@@ -15,10 +15,10 @@ import android.support.v7.widget.Toolbar
 import android.view.View
 import elmdroid.elmdroid.R
 import android.view.MenuItem
-import elmdroid.elmdroid.example1.ExampleActivity
+import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
 import elmdroid.elmdroid.example2.DrawerExample
 import elmdroid.elmdroid.example3.MapsActivity
-import elmdroid.elmdroid.example4.MainActivityExample4
+import elmdroid.elmdroid.example4.Example4Tabbed
 import elmdroid.elmdroid.example5.ItemListActivity
 
 /**
@@ -83,11 +83,11 @@ sealed class ItemOption(val handled: Boolean = true) {
 }
 
 sealed class NavOption(val toDisplay: Boolean = true) {
-    class NavCamera : NavOption()
-    class NavGallery : NavOption()
-    class NavSlideshow : NavOption()
-    class NavManage : NavOption()
-    class NavShare : NavOption()
+    class NavHelloWorld : NavOption()
+    class NavDrawer : NavOption()
+    class NavTabbed : NavOption()
+    class NavMasterDetails : NavOption()
+    class NavMaps : NavOption()
     class NavSend : NavOption()
 }
 
@@ -125,8 +125,8 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                 ret(model)
             }
             is Msg.Fab.Clicked -> {
-                Snackbar.make(msg.view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show()
+                Snackbar.make(msg.view, "Exit", Snackbar.LENGTH_LONG)
+                        .setAction("Finish", { me.finish() }).show()
                 ret(model)
             }
             is Msg.Option -> {
@@ -156,17 +156,17 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                 // Handle navigation view item clicks here.
                 val id = item.itemId
                 val nav: NavOption? = when {
-                    (id == R.id.nav_camera) ->
+                    (id == R.id.nav_helloworld) ->
                         // Handle the camera action
-                        NavOption.NavCamera()
-                    (id == R.id.nav_gallery) ->
-                        NavOption.NavGallery()
-                    (id == R.id.nav_slideshow) ->
-                        NavOption.NavSlideshow()
-                    (id == R.id.nav_manage) ->
-                        NavOption.NavManage()
-                    (id == R.id.nav_share) ->
-                        NavOption.NavShare()
+                        NavOption.NavHelloWorld()
+                    (id == R.id.nav_drawer) ->
+                        NavOption.NavDrawer()
+                    (id == R.id.nav_tabbed) ->
+                        NavOption.NavTabbed()
+                    (id == R.id.nav_masterdetails) ->
+                        NavOption.NavMasterDetails()
+                    (id == R.id.nav_maps) ->
+                        NavOption.NavMaps()
                     (id == R.id.nav_send) ->
                         NavOption.NavSend()
                     else -> null // close the drawer
@@ -177,16 +177,16 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                     ret(model.copy(navOption = nav), Msg.Option.Drawer(DrawerOption.closed))
                 } else {
                     when (nav){
-                        is NavOption.NavCamera -> me.startActivity(
-                                Intent(me, ExampleActivity::class.java))
-                        is NavOption.NavGallery-> me.startActivity(
+                        is NavOption.NavHelloWorld -> me.startActivity(
+                                Intent(me, ExampleHelloWorldActivity::class.java))
+                        is NavOption.NavDrawer -> me.startActivity(
                                 Intent(me, DrawerExample::class.java))
-                        is NavOption.NavManage-> me.startActivity(
-                                Intent(me, MapsActivity::class.java))
-                        is NavOption.NavSend-> me.startActivity(
-                                Intent(me, MainActivityExample4::class.java))
-                        is NavOption.NavShare-> me.startActivity(
+                        is NavOption.NavTabbed -> me.startActivity(
+                                Intent(me, Example4Tabbed::class.java))
+                        is NavOption.NavMasterDetails -> me.startActivity(
                                 Intent(me, ItemListActivity::class.java))
+                        is NavOption.NavMaps -> me.startActivity(
+                                Intent(me, MapsActivity::class.java))
                     }
                     ret(model.copy(navOption = nav))
                 }
@@ -314,7 +314,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
 //    }
 //
 //    checkView(setup, model, pre) {
-////            view(model.activity, pre?.activity )
+////            view(model., pre?. )
 //    }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {

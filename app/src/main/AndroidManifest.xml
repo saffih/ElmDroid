@@ -27,40 +27,25 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".example2orig.Example2OrigDrawer"
+            android:label="@string/title_activity_main_example2_orig"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="elmdroid.elmdroid.example2.DrawerExample" />
+        </activity>
+        <activity
             android:name=".example2.DrawerExample"
             android:label="@string/title_activity_example2"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example.ShowCase" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
-        <activity
-            android:name=".example2orig.MainActivityExample2Orig"
-            android:label="@string/title_activity_main_example2_orig"
-            android:theme="@style/AppTheme.NoActionBar">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="elmdroid.elmdroid.example2.DrawerExample" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
-        </activity>
-        <activity android:name=".example1.ExampleActivity">
+        <activity android:name=".example1.ExampleHelloWorldActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example.ShowCase" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
 
         <!--
@@ -81,11 +66,6 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example.ShowCase" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
         <activity
             android:name=".example3orig.MapsActivityOrig"
@@ -93,11 +73,6 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example.ShowCase" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
         <activity
             android:name=".example5.ItemListActivity"
@@ -106,11 +81,6 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example.ShowCase" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
         <activity
             android:name=".example5.ItemDetailActivity"
@@ -128,11 +98,6 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example5.ItemListActivity" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
         <activity
             android:name=".example5orig.ItemDetailActivity"
@@ -144,19 +109,22 @@
                 android:value="elmdroid.elmdroid.example5orig.ItemListActivity" />
         </activity>
         <activity
-            android:name=".example4.MainActivityExample4"
+            android:name=".example4.Example4Tabbed"
             android:label="@string/title_activity_main_example4"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example.ShowCase" />
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-<!---->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
-
+        <activity
+            android:name=".example4.TabbedActivityOrig"
+            android:label="@string/title_activity_tabbed"
+            android:parentActivityName=".example4.Example4Tabbed"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="elmdroid.elmdroid.example4.Example4Tabbed" />
+        </activity>
     </application>
 
 </manifest>

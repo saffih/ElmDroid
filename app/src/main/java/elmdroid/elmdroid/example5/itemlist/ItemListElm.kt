@@ -298,8 +298,8 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
         val setup = {
             val fab = me.findViewById(R.id.fab) as FloatingActionButton
             fab.setOnClickListener { view ->
-                Snackbar.make(view, "Goto Studio original", Snackbar.LENGTH_LONG)
-                        .setAction("Original", {dispatch(Msg.Action.GotoOrig())}).show()
+                Snackbar.make(view, "Goto original studio generated activity", Snackbar.LENGTH_LONG)
+                        .setAction("Goto", { dispatch(Msg.Action.GotoOrig()) }).show()
             }
         }
         checkView(setup, model, pre){

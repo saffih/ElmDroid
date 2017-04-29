@@ -15,7 +15,7 @@ import android.view.View
 import elmdroid.elmdroid.ElmBase
 import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
-import elmdroid.elmdroid.example2orig.MainActivityExample2Orig
+import elmdroid.elmdroid.example2orig.Example2OrigDrawer
 
 /**
 * Copyright Joseph Hartal (Saffi)
@@ -129,7 +129,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
 
             is Msg.Action.GotOrig ->{
                 me.startActivity(
-                        Intent(me, MainActivityExample2Orig::class.java))
+                        Intent(me, Example2OrigDrawer::class.java))
                 ret(model)}
         }
     }
@@ -256,8 +256,8 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
             if (model.clicked!=null){
                 val v = me.findViewById(model.clicked.id)
 
-                Snackbar.make(v, "click to see orig", Snackbar.LENGTH_LONG)
-                    .setAction("goto Orig", {dispatch(Msg.Action.GotOrig())}).show()
+                Snackbar.make(v, "Goto original studio generated activity", Snackbar.LENGTH_LONG)
+                        .setAction("Goto", { dispatch(Msg.Action.GotOrig()) }).show()
             }
         }
     }
@@ -266,16 +266,16 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
         // Handle navigation view item clicks here.
         val id = item.itemId
 
-        if (id == R.id.nav_camera) {
+        if (id == R.id.nav_helloworld) {
             // Handle the camera action
             dispatch(Msg.Option.Navigation(NavOption.nav_camera))
-        } else if (id == R.id.nav_gallery) {
+        } else if (id == R.id.nav_drawer) {
             dispatch(Msg.Option.Navigation(NavOption.nav_gallery))
-        } else if (id == R.id.nav_slideshow) {
+        } else if (id == R.id.nav_tabbed) {
             dispatch(Msg.Option.Navigation(NavOption.nav_slideshow))
-        } else if (id == R.id.nav_manage) {
+        } else if (id == R.id.nav_masterdetails) {
             dispatch(Msg.Option.Navigation(NavOption.nav_manage))
-        } else if (id == R.id.nav_share) {
+        } else if (id == R.id.nav_maps) {
             dispatch(Msg.Option.Navigation(NavOption.nav_share))
         } else if (id == R.id.nav_send) {
             dispatch(Msg.Option.Navigation(NavOption.nav_send))

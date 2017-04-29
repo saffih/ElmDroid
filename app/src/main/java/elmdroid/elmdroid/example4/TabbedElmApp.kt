@@ -17,9 +17,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import elmdroid.elmdroid.R
-import android.view.Menu
 import android.view.MenuItem
-import elmdroid.elmdroid.example2orig.MainActivityExample2Orig
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -87,8 +85,11 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
                 ret(model)
             }
             is Msg.Fab.Clicked -> {
-                Snackbar.make(msg.view, "Not configured", Snackbar.LENGTH_LONG)
-                        .setAction("Goto", null).show()
+                Snackbar.make(msg.view, "Goto original studio generated activity", Snackbar.LENGTH_LONG)
+                        .setAction("Goto", {
+                            me.startActivity(
+                                    Intent(me, TabbedActivityOrig::class.java))
+                        }).show()
                 ret(model)
             }
 
@@ -219,7 +220,7 @@ class PlaceholderFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
-        val rootView = inflater!!.inflate(R.layout.fragment_main_activity_example4, container, false)
+        val rootView = inflater!!.inflate(R.layout.fragment_tabbed_activity_example4, container, false)
         val textView = rootView.findViewById(R.id.section_label) as TextView
         textView.text = getString(R.string.section_format, arguments.getInt(ARG_SECTION_NUMBER))
         return rootView

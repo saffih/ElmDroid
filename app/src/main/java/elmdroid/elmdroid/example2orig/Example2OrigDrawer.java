@@ -15,7 +15,7 @@ import android.view.MenuItem;
 
 import elmdroid.elmdroid.R;
 
-public class MainActivityExample2Orig extends AppCompatActivity
+public class Example2OrigDrawer extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     @Override

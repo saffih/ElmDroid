@@ -86,17 +86,11 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
     }
 }
 
-class ExampleActivity : AppCompatActivity() {
+class ExampleHelloWorldActivity : AppCompatActivity() {
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         app.start(savedInstanceState)
     }
 
-
-//    override fun onSaveInstanceState( outState:Bundle? )
-//    {
-//        // call superclass to save any view hierarchy
-//        super.onSaveInstanceState(out)
-//    }
 }
