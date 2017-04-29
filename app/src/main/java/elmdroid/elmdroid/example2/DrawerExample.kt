@@ -37,7 +37,7 @@ class DrawerExample : AppCompatActivity() {
 
         val id = item.itemId
         if (id == R.id.action_settings) {
-            // you chose settings.
+            // you chose Settings.
             app.dispatch(Msg.Option.ItemSelected(ItemOption.settings))
 
             return true

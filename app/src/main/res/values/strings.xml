@@ -13,4 +13,5 @@
     <string name="title_activity_main_example2_orig">MainActivityExample2Orig</string>
     <string name="title_activity_main_example4">MainActivityExample4</string>
     <string name="section_format">Hello World from section: %1$d</string>
+    <string name="title_activity_show_case">ShowCase</string>
 </resources>

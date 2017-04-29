@@ -1,5 +1,6 @@
 package elmdroid.elmdroid.example2
 
+import android.content.Intent
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.NavigationView
@@ -14,6 +15,7 @@ import android.view.View
 import elmdroid.elmdroid.ElmBase
 import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
+import elmdroid.elmdroid.example2orig.MainActivityExample2Orig
 
 /**
 * Copyright Joseph Hartal (Saffi)
@@ -43,7 +45,7 @@ sealed class Msg {
     }
 
     sealed class Action:Msg(){
-        class DoSomething :Action()
+        class GotOrig :Action()
     }
 }
 
@@ -86,7 +88,7 @@ data class MFab (val clicked : ViewId?=null,
 data class MSnackbar (val txt: String="Snack bar message",
                       val action: MSnackbarAction= MSnackbarAction())
 data class MSnackbarAction (val name : String="Action name",
-                            val msg:Msg.Action = Msg.Action.DoSomething())
+                            val msg:Msg.Action = Msg.Action.GotOrig())
 
 data class MOptions(val drawer: MDrawer = MDrawer(),
                     val navOption: NavOption?=null,
@@ -97,7 +99,8 @@ data class MDrawer (val i: DrawerOption = DrawerOption.closed)
 
 
 
-class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , NavigationView.OnNavigationItemSelectedListener {
+class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
+        NavigationView.OnNavigationItemSelectedListener {
     override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
@@ -124,7 +127,10 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
                 ret(model.copy(options= sm), sc)
             }
 
-            is Msg.Action.DoSomething -> ret(model)
+            is Msg.Action.GotOrig ->{
+                me.startActivity(
+                        Intent(me, MainActivityExample2Orig::class.java))
+                ret(model)}
         }
     }
 
@@ -250,8 +256,8 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
             if (model.clicked!=null){
                 val v = me.findViewById(model.clicked.id)
 
-                Snackbar.make(v, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", {dispatch(Msg.Action.DoSomething())}).show()
+                Snackbar.make(v, "click to see orig", Snackbar.LENGTH_LONG)
+                    .setAction("goto Orig", {dispatch(Msg.Action.GotOrig())}).show()
             }
         }
     }

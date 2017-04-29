@@ -1,5 +1,6 @@
 package elmdroid.elmdroid.example4
 
+import android.content.Intent
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
@@ -18,6 +19,7 @@ import android.widget.TextView
 import elmdroid.elmdroid.R
 import android.view.Menu
 import android.view.MenuItem
+import elmdroid.elmdroid.example2orig.MainActivityExample2Orig
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -35,6 +37,9 @@ sealed class  Msg {
 
     sealed class Options: Msg(){
             class ItemSelected(val item: MenuItem) : Options()
+    }
+    sealed class Action:Msg(){
+        class GotOrig :Action()
     }
 }
 
@@ -82,8 +87,8 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
                 ret(model)
             }
             is Msg.Fab.Clicked -> {
-                Snackbar.make(msg.view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show()
+                Snackbar.make(msg.view, "Not configured", Snackbar.LENGTH_LONG)
+                        .setAction("Goto", null).show()
                 ret(model)
             }
 
@@ -91,6 +96,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
                 val (m,q) = update(msg, model.options)
                 ret(model.copy(options= m), q)
             }
+            is Msg.Action.GotOrig ->    ret(model)
         }
 
 

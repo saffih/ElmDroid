@@ -89,7 +89,7 @@ sealed class Msg {
     }
 
     sealed class Action: Msg(){
-        class DoSomething : Action()
+        class GotoOrig : Action()
     }
 }
 
@@ -147,7 +147,11 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
                 val (m,q) = update(msg, model.fab)
                 ret( model.copy(fab = m), q)
             }
-            is Msg.Action.DoSomething -> TODO()
+            is Msg.Action.GotoOrig ->      {
+                me.startActivity(Intent(me,
+                        elmdroid.elmdroid.example5orig.ItemListActivity::class.java))
+                ret(model)
+            }
         }
     }
 
@@ -294,8 +298,8 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
         val setup = {
             val fab = me.findViewById(R.id.fab) as FloatingActionButton
             fab.setOnClickListener { view ->
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show()
+                Snackbar.make(view, "Goto Studio original", Snackbar.LENGTH_LONG)
+                        .setAction("Original", {dispatch(Msg.Action.GotoOrig())}).show()
             }
         }
         checkView(setup, model, pre){
