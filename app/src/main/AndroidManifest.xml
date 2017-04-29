@@ -17,7 +17,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".example2.Example2"
+            android:name=".example2.DrawerExample"
             android:label="@string/title_activity_example2"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -29,7 +29,7 @@
         <activity
             android:name=".example2orig.MainActivityExample2Orig"
             android:label="@string/title_activity_main_example2_orig"
-            android:theme="@style/AppTheme.NoActionBar" >
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -111,6 +111,16 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example5orig.ItemListActivity" />
+        </activity>
+        <activity
+            android:name=".example4.MainActivityExample4"
+            android:label="@string/title_activity_main_example4"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
     </application>
 

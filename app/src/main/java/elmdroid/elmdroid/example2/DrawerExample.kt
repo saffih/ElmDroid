@@ -6,7 +6,7 @@ import android.view.Menu
 import android.view.MenuItem
 import elmdroid.elmdroid.R
 
-class Example2 : AppCompatActivity() {
+class DrawerExample : AppCompatActivity() {
 
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
