@@ -7,4 +7,8 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="title_activity_main">MainActivity</string>
     <string name="title_activity_maps">Map</string>
+    <string name="title_item_list">Items</string>
+    <string name="title_item_detail">Item Detail</string>
+    <string name="title_activity_maps_orig">Map</string>
+    <string name="title_activity_main_example2_orig">MainActivityExample2Orig</string>
 </resources>

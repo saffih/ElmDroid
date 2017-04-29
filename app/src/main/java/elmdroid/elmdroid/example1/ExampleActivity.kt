@@ -27,7 +27,7 @@ sealed class Msg {
 }
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
-    override fun init() = ret(Model(), Msg.Init)
+    override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {

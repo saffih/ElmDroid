@@ -46,7 +46,7 @@ data class MMap(val googleMap: GoogleMap? = null,
 
 class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMapReadyCallback {
 
-    override fun init() = ret(Model(), Msg.Init)
+    override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {

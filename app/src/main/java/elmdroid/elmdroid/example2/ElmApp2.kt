@@ -1,5 +1,6 @@
 package elmdroid.elmdroid.example2
 
+import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.NavigationView
 import android.support.design.widget.Snackbar
@@ -97,7 +98,7 @@ data class MDrawer (val i: DrawerOption = DrawerOption.closed)
 
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , NavigationView.OnNavigationItemSelectedListener {
-    override fun init() = ret(Model(), Msg.Init)
+    override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
@@ -240,7 +241,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) , Nav
     fun view(model: MFab, pre: MFab?) {
         val setup = {
             val fab = me.findViewById(R.id.fab) as FloatingActionButton
-            // Listen for a click on a FAB view and send it's id.
+            // Listen for a click on a FAB view and send it's viewId.
             fab.setOnClickListener {
                 dispatch(Msg.Fab.Clicked(v=ViewId(it.id)))}
         }

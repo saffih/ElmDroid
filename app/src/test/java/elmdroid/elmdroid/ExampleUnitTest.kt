@@ -2,6 +2,7 @@
 
 package elmdroid.elmdroid
 
+import android.os.Bundle
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -58,7 +59,7 @@ class ExampleUnitTest {
 
 
     class App : ElmBase<Model, Msg>(me = null) {
-        override fun init() =
+        override fun init(savedInstanceState: Bundle?) =
                 //                ret(Model(A(0),B(1)))
                 ret(Model(), Msg.Reset())
 

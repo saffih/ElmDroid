@@ -7,6 +7,7 @@ package elmdroid.elmdroid
 
 import android.app.Activity
 import android.content.Context
+import android.os.Bundle
 import android.os.Handler
 import android.view.View
 import android.view.ViewGroup
@@ -100,7 +101,7 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
     // Mandatory methods
     // Elm Init - init : (Model, Que Msg)
-    abstract fun init( ) : Pair<M, Que<MSG>>
+    abstract fun init(savedInstanceState: Bundle?): Pair<M, Que<MSG>>
 
     // In Elm - update : Msg -> Model -> (Model, Que Msg)
     abstract fun update(msg: MSG, model: M) : Pair<M, Que<MSG>>
@@ -171,7 +172,7 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         dispatch( msg?.que()?: noneQue )
     }
 
-    private fun dispatch(que: Que<MSG>){
+    fun dispatch(que: Que<MSG>){
         val newMC = mainCompute(que, mc!!)
         val model = newMC.first
         callView(model)
@@ -205,9 +206,9 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         return mc2
     }
 
-    public fun start(): ElmBase<M, MSG> {
+    public fun start(savedInstanceState: Bundle?=null): ElmBase<M, MSG> {
         assert(mc==null) { "Check if started more then once." }
-        mc=init()
+        mc=init(savedInstanceState)
         dispatch()
         return this
     }
