@@ -15,4 +15,6 @@
     <string name="section_format">Hello World from section: %1$d</string>
     <string name="title_activity_show_case">ShowCase</string>
     <string name="title_activity_tabbed">TabbedActivity</string>
+    <string name="twitter_account">saffih</string>
+    <string name="my_name">Saffi Hartal</string>
 </resources>

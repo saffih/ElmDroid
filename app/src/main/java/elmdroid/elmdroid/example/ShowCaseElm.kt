@@ -1,6 +1,7 @@
 package elmdroid.elmdroid.example
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.NavigationView
@@ -15,6 +16,8 @@ import android.support.v7.widget.Toolbar
 import android.view.View
 import elmdroid.elmdroid.R
 import android.view.MenuItem
+import android.widget.LinearLayout
+import android.widget.TextView
 import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
 import elmdroid.elmdroid.example2.DrawerExample
 import elmdroid.elmdroid.example3.MapsActivity
@@ -42,6 +45,10 @@ sealed class Msg {
         class Navigation(val item: MenuItem) : Option()
         class ItemSelected(val item: MenuItem) : Option()
         class Drawer(val item: DrawerOption = DrawerOption.opened) : Option()
+    }
+
+    sealed class Action : Msg() {
+        class OpenTwitter(val name: String) : Action()
     }
 }
 
@@ -135,6 +142,11 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
             is Msg.Option -> {
                 val (m, q) = update(msg, model.options)
                 ret(model.copy(options = m), q)
+            }
+            is Msg.Action.OpenTwitter -> {
+                val name = msg.name
+                me.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com/${name}")))
+                ret(model)
             }
         }
     }
@@ -278,6 +290,12 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
     private fun view(model: MDrawer, pre: MDrawer?) {
         val setup = {
             val drawer = me.findViewById(R.id.drawer_layout) as DrawerLayout
+            val navView = me.findViewById(R.id.nav_view) as NavigationView
+            val parentLayout = navView.getHeaderView(0)
+            val nameView = parentLayout.findViewById(R.id.nameTextView) as TextView
+            val name = me.getResources().getString(R.string.twitter_account)
+            nameView.text = "@" + name
+            nameView.setOnClickListener { view -> dispatch(Msg.Action.OpenTwitter(name)) }
 
             val toolbar = me.findViewById(R.id.toolbar) as Toolbar
 
@@ -293,6 +311,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
             closeListener.registerAt(drawer)
             openListener.registerAt(drawer)
             toggle.syncState()
+
         }
 
         checkView(setup, model, pre) {
