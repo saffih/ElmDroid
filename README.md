@@ -2,10 +2,10 @@
 Elm style POC for droid
 
 `Inspired by:` 
-- Elm
-- Kotlin
-- @lungos POC  https://github.com/glung/elm-architecture-android 
-- redux
+- [Elm]](http://elm-lang.org/)
+- [Kotlin](https://kotlinlang.org/)
+- [@lungos POC](https://github.com/glung/elm-architecture-android) 
+- [Redux](http://redux.js.org/docs/introduction/PriorArt.html)
 
 
 ## Style

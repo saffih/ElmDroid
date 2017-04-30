@@ -173,7 +173,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
 
     private fun view(model: MActivity, pre: MActivity?) {
         val setup = {
-            me.setContentView(R.layout.nav_activity_example2)
+            me.setContentView(R.layout.nav_activity_drawer)
         }
         checkView( setup , model, pre) {
             view(model.toolbar, pre?.toolbar)
@@ -277,7 +277,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
             dispatch(Msg.Option.Navigation(NavOption.nav_manage))
         } else if (id == R.id.nav_maps) {
             dispatch(Msg.Option.Navigation(NavOption.nav_share))
-        } else if (id == R.id.nav_send) {
+        } else if (id == R.id.nav_mapsorig) {
             dispatch(Msg.Option.Navigation(NavOption.nav_send))
         }
         // close the drawer

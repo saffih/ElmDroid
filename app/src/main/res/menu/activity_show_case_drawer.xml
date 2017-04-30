@@ -27,9 +27,9 @@
                 android:icon="@drawable/ic_menu_share"
                 android:title="Maps" />
             <item
-                android:id="@+id/nav_send"
+                android:id="@+id/nav_mapsorig"
                 android:icon="@drawable/ic_menu_send"
-                android:title="Send" />
+                android:title="Maps Original" />
         </menu>
     </item>
 

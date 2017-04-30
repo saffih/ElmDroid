@@ -67,7 +67,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
      * Activity child setup the layout view. if has changes delegate render to child views
      */
     private fun  view(model: MActivity, pre: MActivity?) {
-        val setup = { me.setContentView(R.layout.activity_example) }
+        val setup = { me.setContentView(R.layout.activity_helloworld) }
 
         checkView(setup, model, pre) {
             view(model.greeting, pre?.greeting)

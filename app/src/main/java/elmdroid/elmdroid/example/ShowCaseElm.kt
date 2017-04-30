@@ -18,8 +18,11 @@ import android.view.MenuItem
 import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
 import elmdroid.elmdroid.example2.DrawerExample
 import elmdroid.elmdroid.example3.MapsActivity
+import elmdroid.elmdroid.example3orig.MapsActivityOrig
 import elmdroid.elmdroid.example4.Example4Tabbed
 import elmdroid.elmdroid.example5.ItemListActivity
+import us.feras.mdv.MarkdownView
+
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -88,7 +91,7 @@ sealed class NavOption(val toDisplay: Boolean = true) {
     class NavTabbed : NavOption()
     class NavMasterDetails : NavOption()
     class NavMaps : NavOption()
-    class NavSend : NavOption()
+    class NavMapsOrig : NavOption()
 }
 
 
@@ -167,8 +170,8 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                         NavOption.NavMasterDetails()
                     (id == R.id.nav_maps) ->
                         NavOption.NavMaps()
-                    (id == R.id.nav_send) ->
-                        NavOption.NavSend()
+                    (id == R.id.nav_mapsorig) ->
+                        NavOption.NavMapsOrig()
                     else -> null // close the drawer
                 }
 
@@ -187,6 +190,8 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                                 Intent(me, ItemListActivity::class.java))
                         is NavOption.NavMaps -> me.startActivity(
                                 Intent(me, MapsActivity::class.java))
+                        is NavOption.NavMapsOrig -> me.startActivity(
+                                Intent(me, MapsActivityOrig::class.java))
                     }
                     ret(model.copy(navOption = nav))
                 }
@@ -218,6 +223,8 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
     private fun view(model: MActivity, pre: MActivity?) {
         val setup = {
             me.setContentView(R.layout.activity_show_case)
+            val markdownView = me.findViewById(R.id.markdownView) as MarkdownView
+            markdownView.loadMarkdownFile("https://raw.githubusercontent.com/saffih/ElmDroid/master/README.md")
         }
         checkView(setup, model, pre) {
             view(model.fab, pre?.fab)
