@@ -119,7 +119,7 @@
                 android:value="elmdroid.elmdroid.example5orig.ItemListActivity" />
         </activity>
         <activity
-            android:name=".example4.Example4Tabbed"
+            android:name=".example4.TabbedActivity"
             android:label="@string/title_activity_main_example4"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
@@ -129,11 +129,11 @@
         <activity
             android:name=".example4.TabbedActivityOrig"
             android:label="@string/title_activity_tabbed"
-            android:parentActivityName=".example4.Example4Tabbed"
+            android:parentActivityName=".example4.TabbedActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="elmdroid.elmdroid.example4.Example4Tabbed" />
+                android:value="elmdroid.elmdroid.example4.TabbedActivity" />
         </activity>
     </application>
 

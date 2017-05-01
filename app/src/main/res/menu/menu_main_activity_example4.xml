@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="elmdroid.elmdroid.example4.Example4Tabbed">
+    tools:context="elmdroid.elmdroid.example4.TabbedActivity">
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"

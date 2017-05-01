@@ -1,5 +1,6 @@
 package elmdroid.elmdroid.example
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -9,19 +10,20 @@ import android.support.design.widget.Snackbar
 import android.support.v4.view.GravityCompat
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.ActionBarDrawerToggle
-import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.Que
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
-import android.view.View
-import elmdroid.elmdroid.R
 import android.view.MenuItem
+import android.view.View
 import android.widget.TextView
+import android.widget.Toast
+import elmdroid.elmdroid.ElmBase
+import elmdroid.elmdroid.Que
+import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
 import elmdroid.elmdroid.example2.DrawerExample
 import elmdroid.elmdroid.example3.MapsActivity
 import elmdroid.elmdroid.example3orig.MapsActivityOrig
-import elmdroid.elmdroid.example4.Example4Tabbed
+import elmdroid.elmdroid.example4.TabbedActivity
 import elmdroid.elmdroid.example5.ItemListActivity
 import us.feras.mdv.MarkdownView
 
@@ -30,6 +32,33 @@ import us.feras.mdv.MarkdownView
  * Copyright Joseph Hartal (Saffi)
  * Created by saffi on 29/04/17.
  */
+
+// UI options
+enum class NavOption(val id: Int) {
+    HelloWorld(R.id.nav_helloworld),
+    Drawer(R.id.nav_drawer),
+    Tabbed(R.id.nav_tabbed),
+    MasterDetails(R.id.nav_masterdetails),
+    Maps(R.id.nav_maps),
+    MapsOrig(R.id.nav_mapsorig);
+
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
+}
+
+enum class ItemOption(val id: Int) {
+    settings(R.id.action_settings);
+
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
+}
+
+
+
 
 sealed class Msg {
     class Init(savedInstanceState: Bundle?) : Msg()
@@ -45,7 +74,13 @@ sealed class Msg {
 
     sealed class Action : Msg() {
         class OpenTwitter(val name: String) : Action()
+        class UIToast(val txt: String, val duration: Int = Toast.LENGTH_SHORT) : Action()
     }
+}
+
+fun Msg.Action.UIToast.show(me: Context) {
+    val toast = Toast.makeText(me, txt, duration)
+    toast.show()
 }
 
 data class Model(val activity: MActivity = MActivity())
@@ -57,9 +92,7 @@ data class MActivity(
 
 data class MOptions(val drawer: MDrawer = MDrawer(),
                     val navOption: MNavOption = MNavOption(),
-                    val itemOption: MItemOption = MItemOption(),
-                    val itemSelectedHandled: Boolean = false
-)
+                    val itemOption: MItemOption = MItemOption())
 
 data class MViewPager(val i: Int = 0)
 data class MToolbar(val i: Int = 0)
@@ -85,34 +118,6 @@ sealed class DrawerOption {
     object closed : DrawerOption()
 }
 
-
-enum class NavOption(val id: Int) {
-    HelloWorld(R.id.nav_helloworld),
-    Drawer(R.id.nav_drawer),
-    Tabbed(R.id.nav_tabbed),
-    MasterDetails(R.id.nav_masterdetails),
-    Maps(R.id.nav_maps),
-    MapsOrig(R.id.nav_mapsorig);
-
-    companion object {
-        val map by lazy { values().associate { it.id to it } }
-        fun byId(id: Int) = map.get(id)
-    }
-}
-
-enum class ItemOption(val id: Int) {
-    settings(R.id.action_settings);
-
-    companion object {
-        val map by lazy { values().associate { it.id to it } }
-        fun byId(id: Int) = map.get(id)
-    }
-}
-//{
-//    class Settings : MItemOption()
-//}
-
-// TOs transfer objects
 
 class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
         NavigationView.OnNavigationItemSelectedListener {
@@ -151,6 +156,10 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
             is Msg.Action.OpenTwitter -> {
                 val name = msg.name
                 me.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com/${name}")))
+                ret(model)
+            }
+            is Msg.Action.UIToast -> {
+                msg.show(me)
                 ret(model)
             }
         }
@@ -203,7 +212,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                 NavOption.Drawer -> me.startActivity(
                         Intent(me, DrawerExample::class.java))
                 NavOption.Tabbed -> me.startActivity(
-                        Intent(me, Example4Tabbed::class.java))
+                        Intent(me, TabbedActivity::class.java))
                 NavOption.MasterDetails -> me.startActivity(
                         Intent(me, ItemListActivity::class.java))
                 NavOption.Maps -> me.startActivity(
@@ -216,14 +225,12 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
         }
     }
 
-
     fun update(msg: Msg.Option.Drawer, model: MDrawer): Pair<MDrawer, Que<Msg>> {
         return when (msg.item) {
             DrawerOption.opened -> ret(model.copy(i = DrawerOption.opened))
             DrawerOption.closed -> ret(model.copy(i = DrawerOption.closed))
         }
     }
-
 
     override fun view(model: Model, pre: Model?) {
         val setup = {
@@ -294,7 +301,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
             val navView = me.findViewById(R.id.nav_view) as NavigationView
             val parentLayout = navView.getHeaderView(0)
             val nameView = parentLayout.findViewById(R.id.nameTextView) as TextView
-            val name = me.getResources().getString(R.string.twitter_account)
+            val name = me.resources.getString(R.string.twitter_account)
             nameView.text = "@" + name
             nameView.setOnClickListener { view -> dispatch(Msg.Action.OpenTwitter(name)) }
 
@@ -346,7 +353,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         dispatch(Msg.Option.Navigation(item))
-        return this.model.activity.options.navOption?.toDisplay ?: false
+        return this.model.activity.options.navOption.toDisplay
     }
 
 }

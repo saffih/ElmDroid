@@ -1,11 +1,14 @@
 package elmdroid.elmdroid.example5.detail
 
+import android.content.Context
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
+import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import elmdroid.elmdroid.ElmBase
 import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
@@ -16,7 +19,14 @@ import elmdroid.elmdroid.example5.ItemDetailFragment
  * Created by saffi on 28/04/17.
  */
 
+enum class ItemOption(val id: Int) {
+    settings(R.id.action_settings);
 
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
+}
 
 
 sealed class Msg {
@@ -27,24 +37,21 @@ sealed class Msg {
     }
     sealed class Action:Msg(){
         class DoSomething:Action()
+        class UIToast(val txt: String, val duration: Int = Toast.LENGTH_SHORT) : Action()
     }
 
-//    sealed class Option : Msg() {
+    sealed class Option : Msg() {
 //        class Navigation(val item: MNavOption) : Option()
-//        class ItemSelected(val item: Any) : Option()
+class ItemSelected(val item: MenuItem) : Option()
 //        class Drawer(val item: DrawerOption = DrawerOption.opened) : Option()
-//    }
+    }
 }
 
 
-
-/**
- * Types used as in message properties
- */
-//class ViewId(val id:Int)
-//fun Int.viewId() = ViewId(this)
-//val View.viewId: ViewId get () = this.id.viewId()
-
+fun Msg.Action.UIToast.show(me: Context) {
+    val toast = Toast.makeText(me, txt, duration)
+    toast.show()
+}
 
 /**
  * Model representing the state of the system
@@ -52,8 +59,8 @@ sealed class Msg {
  */
 data class Model (val activity : MActivity= MActivity())
 data class MActivity (val toolbar : MToolbar= MToolbar(),
-                      val fab:MFab= MFab()
-//                      val options:MOptions= MOptions()
+                      val fab: MFab = MFab(),
+                      val options: MOptions = MOptions()
 )
 data class MToolbar (val show : Boolean = false)
 data class MFab (val clicked: MFabClicked?=null,
@@ -64,12 +71,8 @@ data class MSnackbar (val txt: String="Snack bar message",
 data class MSnackbarAction (val name : String="Action name",
                             val msg:Msg.Action = Msg.Action.DoSomething())
 
-//data class MOptions(val drawer: MDrawer = MDrawer(),
-//                    val navOption: MNavOption?=null,
-//                    val itemOption: MItemOption?=null
-//)
-
-//data class MDrawer (val i: DrawerOption = DrawerOption.closed)
+data class MOptions(val itemOption: MItemOption = MItemOption())
+data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
     override fun init(savedInstanceState: Bundle?): Pair<Model, Que<Msg>> {
@@ -108,12 +111,40 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
                 ret(model)
             }
             is Msg.Fab.Clicked -> {
-                val (mFab, q) =update(msg, model.fab)
+                val (mFab, q) = update(msg, model.fab)
                 ret(model.copy(fab=mFab), q)
             }
             is Msg.Action.DoSomething -> {
                 ret(model)
             }
+            is Msg.Option -> {
+                val (m, c) = update(msg, model.options)
+                ret(model.copy(options = m), c)
+            }
+            is Msg.Action.UIToast -> {
+                msg.show(me)
+                ret(model)
+            }
+        }
+    }
+
+    fun update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
+//        return ret(model)
+        return when (msg) {
+
+            is Msg.Option.ItemSelected -> {
+                val (m, c) = update(msg, model.itemOption)
+                ret(model.copy(itemOption = m), c)
+            }
+        }
+    }
+
+    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
+//        return ret(model)
+        val itemOption = ItemOption.byId(msg.item.itemId)
+        return if (itemOption == null) ret(MItemOption(handled = false))
+        else when (itemOption) {
+            ItemOption.settings -> ret(MItemOption(item = itemOption), Msg.Action.UIToast("Setting was clicked"))
         }
     }
 
@@ -165,8 +196,8 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
         }
         checkView(setup, model, pre) {
             if (model!=null){
-                Snackbar.make(model.clicked, "Replace with your own detail action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
+                Snackbar.make(model.clicked, "exit ?", Snackbar.LENGTH_LONG)
+                        .setAction("Exit", { me.finish() }).show()
             }
         }
     }

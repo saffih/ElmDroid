@@ -1,16 +1,14 @@
 package elmdroid.elmdroid.example4
 
-import android.support.v7.app.AppCompatActivity
-
+import android.os.Bundle
 import android.support.v4.app.FragmentPagerAdapter
 import android.support.v4.view.ViewPager
-import android.os.Bundle
+import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
-
 import elmdroid.elmdroid.R
 
-class Example4Tabbed : AppCompatActivity() {
+class TabbedActivity : AppCompatActivity() {
     val app = TabbedElmApp(this)
 
     /**
@@ -41,7 +39,7 @@ class Example4Tabbed : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         app.dispatch(Msg.Options.ItemSelected(item))
-        if (app.model.activity.options.itemSelectedHandled){
+        if (app.model.activity.options.itemOption.handled) {
             return true
         }
         return super.onOptionsItemSelected(item)

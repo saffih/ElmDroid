@@ -1,5 +1,6 @@
 package elmdroid.elmdroid.example2
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
@@ -12,6 +13,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import elmdroid.elmdroid.ElmBase
 import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
@@ -21,6 +23,35 @@ import elmdroid.elmdroid.example2orig.Example2OrigDrawer
 * Copyright Joseph Hartal (Saffi)
 * Created by saffi on 24/04/17.
 */
+
+
+// UI options
+
+enum class NavOption(val id: Int) {
+    Camera(R.id.nav_camera),
+    Gallery(R.id.nav_gallery),
+    Slideshow(R.id.nav_slideshow),
+    Manage(R.id.nav_manage),
+    Share(R.id.nav_share),
+    Send(R.id.nav_send);
+
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
+}
+
+enum class ItemOption(val id: Int) {
+    settings(R.id.action_settings);
+
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
+}
+
+
+
 
 /**
  * Messages:
@@ -39,15 +70,23 @@ sealed class Msg {
     }
 
     sealed class Option : Msg() {
-        class Navigation(val item: NavOption) : Option()
-        class ItemSelected(val item: ItemOption) : Option()
-        class Drawer(val item: DrawerOption  = DrawerOption.opened) : Option()
+        class Navigation(val item: MenuItem) : Option()
+        class ItemSelected(val item: MenuItem) : Option()
+        class Drawer(val item: DrawerOption = DrawerOption.opened) : Option()
     }
 
     sealed class Action:Msg(){
         class GotOrig :Action()
+        class UIToast(val txt: String, val duration: Int = Toast.LENGTH_SHORT) : Action()
     }
 }
+
+
+fun Msg.Action.UIToast.show(me: Context) {
+    val toast = Toast.makeText(me, txt, duration)
+    toast.show()
+}
+
 
 
 /**
@@ -58,19 +97,6 @@ class ViewId(val id:Int)
 sealed class DrawerOption {
     object opened : DrawerOption()
     object closed : DrawerOption()
-}
-
-sealed class ItemOption {
-    object settings : ItemOption()
-}
-
-sealed class NavOption {
-    object nav_camera : NavOption()
-    object nav_gallery : NavOption()
-    object nav_slideshow : NavOption()
-    object nav_manage : NavOption()
-    object nav_share : NavOption()
-    object nav_send : NavOption()
 }
 
 
@@ -91,12 +117,13 @@ data class MSnackbarAction (val name : String="Action name",
                             val msg:Msg.Action = Msg.Action.GotOrig())
 
 data class MOptions(val drawer: MDrawer = MDrawer(),
-                    val navOption: NavOption?=null,
-                    val itemOption: ItemOption?=null
+                    val navOption: MNavOption = MNavOption(),
+                    val itemOption: MItemOption = MItemOption()
                     )
 
-data class MDrawer (val i: DrawerOption = DrawerOption.closed)
-
+data class MDrawer(val i: DrawerOption = DrawerOption.closed)
+data class MNavOption(val toDisplay: Boolean = true, val nav: NavOption? = null)
+data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
@@ -131,19 +158,74 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
                 me.startActivity(
                         Intent(me, Example2OrigDrawer::class.java))
                 ret(model)}
+            is Msg.Action.UIToast -> {
+                msg.show(me)
+                ret(model)
+            }
         }
     }
 
-    fun  update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
-        return when (msg){
-            is Msg.Option.Navigation ->
-                ret (model.copy(navOption = msg.item))
-            is Msg.Option.ItemSelected ->
-                ret (model.copy(itemOption= msg.item))
-            is Msg.Option.Drawer -> {
-                val (sm, sc) = update(msg, model.drawer)
-                ret(model.copy(drawer= sm), sc)
+
+    fun update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
+        return when (msg) {
+            is Msg.Option.ItemSelected -> {
+                val (m, c) = update(msg, model.itemOption)
+                ret(model.copy(itemOption = m), c)
             }
+            is Msg.Option.Navigation -> {
+                val (m, c) = update(msg, model.navOption)
+                ret(model.copy(navOption = m), c)
+            }
+            is Msg.Option.Drawer -> {
+                val (m, c) = update(msg, model.drawer)
+                ret(model.copy(drawer = m), c)
+            }
+        }
+    }
+
+    fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
+        val toast = Toast.makeText(me, txt, duration)
+        toast.show()
+    }
+
+    private fun update(msg: Msg.Option.Navigation, model: MNavOption): Pair<MNavOption, Que<Msg>> {
+        //        return ret(model)
+        val item = msg.item
+        // Handle navigation view item clicks here.
+        val id = item.itemId
+        val nav = NavOption.byId(id)
+        return if (nav == null) {
+            ret(model.copy(nav = null), Msg.Option.Drawer(DrawerOption.closed))
+        } else {
+            // either use action - more idiomatic like this
+            //when (nav) {
+            //    NavOption.Camera -> ret(model.copy(nav = nav, toDisplay = true),
+            //            Msg.Action.UIToast("${nav} not Implemented"))
+            //}
+            // or just toast.
+            when (nav) {
+                NavOption.Camera -> toast("${nav} not Implemented")
+                NavOption.Gallery -> toast("${nav} not Implemented")
+                NavOption.Slideshow -> toast("${nav} not Implemented")
+                NavOption.Manage -> toast("${nav} not Implemented")
+                NavOption.Share -> toast("${nav} not Implemented")
+                NavOption.Send -> toast("${nav} not Implemented")
+            }
+            ret(model.copy(nav = nav, toDisplay = true))
+
+        }
+    }
+
+    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
+        val item = msg.item
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        val id = item.itemId
+        val selected = ItemOption.byId(id)
+        return when (selected) {
+            ItemOption.settings -> ret(MItemOption(item = selected), Msg.Action.UIToast("Setting was clicked"))
+            else -> ret(model.copy(handled = false))
         }
     }
 
@@ -223,13 +305,13 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
         }
     }
 
-    private fun  view(model: NavOption?, pre: NavOption?) {
+    private fun view(model: MNavOption, pre: MNavOption?) {
         checkView( {} , model, pre) {
 
         }
     }
 
-    private fun  view(model: ItemOption?, pre: ItemOption?) {
+    private fun view(model: MItemOption, pre: MItemOption?) {
         checkView( {} , model, pre) {
         }
     }
@@ -261,39 +343,20 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
             }
         }
     }
-
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        // Handle navigation view item clicks here.
-        val id = item.itemId
-
-        if (id == R.id.nav_helloworld) {
-            // Handle the camera action
-            dispatch(Msg.Option.Navigation(NavOption.nav_camera))
-        } else if (id == R.id.nav_drawer) {
-            dispatch(Msg.Option.Navigation(NavOption.nav_gallery))
-        } else if (id == R.id.nav_tabbed) {
-            dispatch(Msg.Option.Navigation(NavOption.nav_slideshow))
-        } else if (id == R.id.nav_masterdetails) {
-            dispatch(Msg.Option.Navigation(NavOption.nav_manage))
-        } else if (id == R.id.nav_maps) {
-            dispatch(Msg.Option.Navigation(NavOption.nav_share))
-        } else if (id == R.id.nav_mapsorig) {
-            dispatch(Msg.Option.Navigation(NavOption.nav_send))
-        }
-        // close the drawer
-        dispatch(Msg.Option.Drawer(DrawerOption.closed))
-
-        return true
+        dispatch(Msg.Option.Navigation(item))
+        return this.model.activity.options.navOption.toDisplay
     }
 
 }
+
 
 
 /**
  * Nicer Listener API for the drawer
  */
 open class BlankDrawerListener : DrawerLayout.DrawerListener {
-    override fun onDrawerSlide(drawerView: View, slideOffset: Float){
+    override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
     }
 
     override fun onDrawerOpened(drawerView: View) {
@@ -304,20 +367,27 @@ open class BlankDrawerListener : DrawerLayout.DrawerListener {
 
     override fun onDrawerStateChanged(newState: Int) {
     }
-    fun  registerAt(drawerLayout: DrawerLayout) {drawerLayout.addDrawerListener(this)}
-    operator fun  invoke(drawerLayout: DrawerLayout) {registerAt(drawerLayout)}
+
+    fun registerAt(drawerLayout: DrawerLayout) {
+        drawerLayout.addDrawerListener(this)
+    }
+
+    operator fun invoke(drawerLayout: DrawerLayout) {
+        registerAt(drawerLayout)
+    }
 }
 
-open class OpenedDrawerListener(val f:(View)->Unit) : BlankDrawerListener(){
+open class OpenedDrawerListener(val f: (View) -> Unit) : BlankDrawerListener() {
     override fun onDrawerOpened(drawerView: View) {
         f(drawerView)
     }
 }
 
-open class ClosedDrawerListener(val f:(View)->Unit) : BlankDrawerListener(){
+open class ClosedDrawerListener(val f: (View) -> Unit) : BlankDrawerListener() {
     override fun onDrawerClosed(drawerView: View) {
         f(drawerView)
     }
 
 }
+
 

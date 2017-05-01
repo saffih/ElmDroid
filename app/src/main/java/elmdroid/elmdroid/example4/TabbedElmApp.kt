@@ -8,33 +8,39 @@ import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentPagerAdapter
 import android.support.v4.view.ViewPager
-import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.Que
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import elmdroid.elmdroid.ElmBase
+import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
-import android.view.MenuItem
 
 /**
  * Copyright Joseph Hartal (Saffi)
  * Created by saffi on 29/04/17.
  */
 
+enum class ItemOption(val id: Int) {
+    settings(R.id.action_settings);
+
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
+}
+
 sealed class  Msg {
     class Init(savedInstanceState: Bundle?) : Msg()
     sealed class Fab: Msg() {
-        class Clicked(val view: View) : Fab() {
-
-        }
-
+        class Clicked(val view: View) : Fab()
     }
 
     sealed class Options: Msg(){
-            class ItemSelected(val item: MenuItem) : Options()
+        class ItemSelected(val item: MenuItem) : Options()
     }
     sealed class Action:Msg(){
         class GotOrig :Action()
@@ -47,11 +53,13 @@ data class MActivity(
         val fab:MFab = MFab(),
         val toolbar: MToolbar= MToolbar(),
         val options: MOptions= MOptions())
-data class MOptions(val itemSelectedHandled:Boolean = false)
+
+data class MOptions(val itemOption: MItemOption = MItemOption(false))
 data class MViewPager(val i:Int = 0)
 data class MToolbar(val i:Int = 0)
 data class MFab(val snackbar:MSnackbar = MSnackbar())
 data class MSnackbar(val i:Int=0)
+data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 
 // TOs transfer objects
@@ -105,18 +113,19 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
 
     private fun update(msg: Msg.Options, model: MOptions): Pair<MOptions, Que<Msg>> {
         return when(msg) {
-
             is Msg.Options.ItemSelected -> {
-                val item = msg.item
-                // Handle action bar item clicks here. The action bar will
-                // automatically handle clicks on the Home/Up button, so long
-                // as you specify a parent activity in AndroidManifest.xml.
-                val id = item.itemId
-
-
-                val handled:Boolean = (id == R.id.action_settings)
-                ret (model.copy(itemSelectedHandled = handled))
+                val (m, c) = update(msg, model.itemOption)
+                ret(model.copy(itemOption = m), c)
             }
+        }
+    }
+
+    fun update(msg: Msg.Options.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
+        val selected = ItemOption.byId(msg.item.itemId)
+        if (selected == null) {
+            return ret(MItemOption(handled = false))
+        } else {
+            return ret(MItemOption(item = selected))
         }
     }
 

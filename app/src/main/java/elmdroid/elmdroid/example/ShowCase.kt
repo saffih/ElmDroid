@@ -7,7 +7,7 @@ import android.view.Menu
 import android.view.MenuItem
 import elmdroid.elmdroid.R
 
-class ShowCase : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+class ShowCase : AppCompatActivity() {
     val app = ShowCaseElm(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,17 +36,12 @@ class ShowCase : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         app.dispatch(Msg.Option.ItemSelected(item))
-        if (app.model.activity.options.itemOption?.handled ?: false) {
+        if (app.model.activity.options.itemOption.handled) {
             return true
         }
 
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-    // Handle navigation view item clicks here.
-        app.dispatch(Msg.Option.Navigation(item))
-        return app.model.activity.options.navOption?.toDisplay ?: false
-    }
 
 }

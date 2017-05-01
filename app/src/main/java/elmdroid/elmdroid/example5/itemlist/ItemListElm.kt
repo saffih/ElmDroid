@@ -27,33 +27,12 @@ import elmdroid.elmdroid.example5.ItemDetailFragment
 
 class CDummyContent {
 
-    /**
-     * An array of sample (dummy) items.
-     */
-//    val ITEMS: MutableList<DummyItem> = ArrayList()
-
-    /**
-     * A map of sample (dummy) items, by ID.
-     */
-//    val ITEM_MAP: MutableMap<String, DummyItem> = HashMap()
-
     private val COUNT = 25
 
-//    init {
-//        // Add some sample items.
-//        for (i in 1..COUNT) {
-//            addItem(createDummyItem(i))
-//        }
-//    }
-
     fun getDemo() = IntRange(1,COUNT).map { createDummyItem(it) }
-//    private fun addItem(item: DummyItem) {
-//        ITEMS.add(item)
-//        ITEM_MAP.put(item.id, item)
-//    }
 
     private fun createDummyItem(position: Int): DummyItem {
-        return DummyItem(position.toString(), "Item " + position, makeDetails(position))
+        return DummyItem(position.toString(), "Example 5: Elm Like - Item " + position, makeDetails(position))
     }
 
     private fun makeDetails(position: Int): String {
@@ -233,7 +212,8 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
                     return super.toString() + " '" + mContentView.text + "'"
                 }
             }
-            class Adapter() : RecyclerView.Adapter<ViewHolder>() {
+
+            class Adapter : RecyclerView.Adapter<ViewHolder>() {
                 override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
                     val view = LayoutInflater.from(parent.context)
                             .inflate(R.layout.item_list_content, parent, false)

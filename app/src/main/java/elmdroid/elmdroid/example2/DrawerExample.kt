@@ -14,18 +14,18 @@ class DrawerExample : AppCompatActivity() {
         app.start()
     }
 
+
     override fun onBackPressed() {
         if (DrawerOption.opened == app.model.activity.options.drawer.i) {
             app.dispatch(Msg.Option.Drawer(DrawerOption.closed))
-        }
-        else {
+        } else {
             super.onBackPressed()
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.example2, menu)
+        menuInflater.inflate(R.menu.show_case, menu)
 
         return true
     }
@@ -34,12 +34,8 @@ class DrawerExample : AppCompatActivity() {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-
-        val id = item.itemId
-        if (id == R.id.action_settings) {
-            // you chose Settings.
-            app.dispatch(Msg.Option.ItemSelected(ItemOption.settings))
-
+        app.dispatch(Msg.Option.ItemSelected(item))
+        if (app.model.activity.options.itemOption.handled) {
             return true
         }
 
