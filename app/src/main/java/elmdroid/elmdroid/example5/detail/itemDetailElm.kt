@@ -30,7 +30,7 @@ sealed class Msg {
     }
 
 //    sealed class Option : Msg() {
-//        class Navigation(val item: NavOption) : Option()
+//        class Navigation(val item: MNavOption) : Option()
 //        class ItemSelected(val item: Any) : Option()
 //        class Drawer(val item: DrawerOption = DrawerOption.opened) : Option()
 //    }
@@ -65,8 +65,8 @@ data class MSnackbarAction (val name : String="Action name",
                             val msg:Msg.Action = Msg.Action.DoSomething())
 
 //data class MOptions(val drawer: MDrawer = MDrawer(),
-//                    val navOption: NavOption?=null,
-//                    val itemOption: ItemOption?=null
+//                    val navOption: MNavOption?=null,
+//                    val itemOption: MItemOption?=null
 //)
 
 //data class MDrawer (val i: DrawerOption = DrawerOption.closed)

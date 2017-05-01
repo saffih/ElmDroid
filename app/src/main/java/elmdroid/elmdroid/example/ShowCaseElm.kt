@@ -16,7 +16,6 @@ import android.support.v7.widget.Toolbar
 import android.view.View
 import elmdroid.elmdroid.R
 import android.view.MenuItem
-import android.widget.LinearLayout
 import android.widget.TextView
 import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
 import elmdroid.elmdroid.example2.DrawerExample
@@ -35,10 +34,7 @@ import us.feras.mdv.MarkdownView
 sealed class Msg {
     class Init(savedInstanceState: Bundle?) : Msg()
     sealed class Fab : Msg() {
-        class Clicked(val view: View) : Fab() {
-
-        }
-
+        class Clicked(val view: View) : Fab()
     }
 
     sealed class Option : Msg() {
@@ -60,8 +56,8 @@ data class MActivity(
         val options: MOptions = MOptions())
 
 data class MOptions(val drawer: MDrawer = MDrawer(),
-                    val navOption: NavOption? = null,
-                    val itemOption: ItemOption? = null,
+                    val navOption: MNavOption = MNavOption(),
+                    val itemOption: MItemOption = MItemOption(),
                     val itemSelectedHandled: Boolean = false
 )
 
@@ -71,7 +67,8 @@ data class MFab(val snackbar: MSnackbar = MSnackbar())
 data class MSnackbar(val i: Int = 0)
 
 data class MDrawer(val i: DrawerOption = DrawerOption.closed)
-
+data class MNavOption(val toDisplay: Boolean = true, val nav: NavOption? = null)
+data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 //sealed class Action:Msg(){
 //    class GotOrig :Action()
@@ -88,19 +85,32 @@ sealed class DrawerOption {
     object closed : DrawerOption()
 }
 
-sealed class ItemOption(val handled: Boolean = true) {
-    class Settings : ItemOption()
+
+enum class NavOption(val id: Int) {
+    HelloWorld(R.id.nav_helloworld),
+    Drawer(R.id.nav_drawer),
+    Tabbed(R.id.nav_tabbed),
+    MasterDetails(R.id.nav_masterdetails),
+    Maps(R.id.nav_maps),
+    MapsOrig(R.id.nav_mapsorig);
+
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
 }
 
-sealed class NavOption(val toDisplay: Boolean = true) {
-    class NavHelloWorld : NavOption()
-    class NavDrawer : NavOption()
-    class NavTabbed : NavOption()
-    class NavMasterDetails : NavOption()
-    class NavMaps : NavOption()
-    class NavMapsOrig : NavOption()
-}
+enum class ItemOption(val id: Int) {
+    settings(R.id.action_settings);
 
+    companion object {
+        val map by lazy { values().associate { it.id to it } }
+        fun byId(id: Int) = map.get(id)
+    }
+}
+//{
+//    class Settings : MItemOption()
+//}
 
 // TOs transfer objects
 
@@ -113,7 +123,6 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
-
             is Msg.Init -> {
                 ret(model)
             }
@@ -121,16 +130,12 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                 val (m, q) = update(msg, model.activity)
                 ret(model.copy(activity = m), q)
             }
-
         }
     }
 
-
     fun update(msg: Msg, model: MActivity): Pair<MActivity, Que<Msg>> {
 //        return ret(model)
-
         return when (msg) {
-
             is Msg.Init -> {
                 ret(model)
             }
@@ -154,64 +159,60 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
     fun update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
         return when (msg) {
             is Msg.Option.ItemSelected -> {
-                val item = msg.item
-                // Handle action bar item clicks here. The action bar will
-                // automatically handle clicks on the Home/Up button, so long
-                // as you specify a parent activity in AndroidManifest.xml.
-                val id = item.itemId
-
-                val selected = when {
-                    (id == R.id.action_settings) -> ItemOption.Settings()
-                    else -> null
-                }
-                ret(model.copy(itemOption = selected))
+                val (m, c) = update(msg, model.itemOption)
+                ret(model.copy(itemOption = m), c)
             }
             is Msg.Option.Navigation -> {
-                val item = msg.item
-                // Handle navigation view item clicks here.
-                val id = item.itemId
-                val nav: NavOption? = when {
-                    (id == R.id.nav_helloworld) ->
-                        // Handle the camera action
-                        NavOption.NavHelloWorld()
-                    (id == R.id.nav_drawer) ->
-                        NavOption.NavDrawer()
-                    (id == R.id.nav_tabbed) ->
-                        NavOption.NavTabbed()
-                    (id == R.id.nav_masterdetails) ->
-                        NavOption.NavMasterDetails()
-                    (id == R.id.nav_maps) ->
-                        NavOption.NavMaps()
-                    (id == R.id.nav_mapsorig) ->
-                        NavOption.NavMapsOrig()
-                    else -> null // close the drawer
-                }
-
-                if (nav == null) {
-                    // dispatch(Msg.Option.Drawer(DrawerOption.closed))
-                    ret(model.copy(navOption = nav), Msg.Option.Drawer(DrawerOption.closed))
-                } else {
-                    when (nav){
-                        is NavOption.NavHelloWorld -> me.startActivity(
-                                Intent(me, ExampleHelloWorldActivity::class.java))
-                        is NavOption.NavDrawer -> me.startActivity(
-                                Intent(me, DrawerExample::class.java))
-                        is NavOption.NavTabbed -> me.startActivity(
-                                Intent(me, Example4Tabbed::class.java))
-                        is NavOption.NavMasterDetails -> me.startActivity(
-                                Intent(me, ItemListActivity::class.java))
-                        is NavOption.NavMaps -> me.startActivity(
-                                Intent(me, MapsActivity::class.java))
-                        is NavOption.NavMapsOrig -> me.startActivity(
-                                Intent(me, MapsActivityOrig::class.java))
-                    }
-                    ret(model.copy(navOption = nav))
-                }
+                val (m, c) = update(msg, model.navOption)
+                ret(model.copy(navOption = m), c)
             }
             is Msg.Option.Drawer -> {
-                val (sm, sc) = update(msg, model.drawer)
-                ret(model.copy(drawer = sm), sc)
+                val (m, c) = update(msg, model.drawer)
+                ret(model.copy(drawer = m), c)
             }
+        }
+    }
+
+    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
+//         return ret(model)
+        val item = msg.item
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        val id = item.itemId
+        val selected = ItemOption.byId(id)
+        return when (selected) {
+            ItemOption.settings -> ret(MItemOption(item = selected))
+            else -> ret(model.copy(handled = false))
+        }
+    }
+
+    private fun update(msg: Msg.Option.Navigation, model: MNavOption): Pair<MNavOption, Que<Msg>> {
+        //        return ret(model)
+        val item = msg.item
+        // Handle navigation view item clicks here.
+        val id = item.itemId
+        val nav = NavOption.byId(id)
+        return if (nav == null) {
+            // dispatch(Msg.Option.Drawer(DrawerOption.closed))
+            ret(model.copy(nav = null), Msg.Option.Drawer(DrawerOption.closed))
+        } else {
+            when (nav) {
+                NavOption.HelloWorld -> me.startActivity(
+                        Intent(me, ExampleHelloWorldActivity::class.java))
+                NavOption.Drawer -> me.startActivity(
+                        Intent(me, DrawerExample::class.java))
+                NavOption.Tabbed -> me.startActivity(
+                        Intent(me, Example4Tabbed::class.java))
+                NavOption.MasterDetails -> me.startActivity(
+                        Intent(me, ItemListActivity::class.java))
+                NavOption.Maps -> me.startActivity(
+                        Intent(me, MapsActivity::class.java))
+                NavOption.MapsOrig -> me.startActivity(
+                        Intent(me, MapsActivityOrig::class.java))
+            }
+            ret(model.copy(nav = nav, toDisplay = true))
+
         }
     }
 
@@ -323,13 +324,13 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
         }
     }
 
-    private fun view(model: NavOption?, pre: NavOption?) {
+    private fun view(model: MNavOption?, pre: MNavOption?) {
         checkView({}, model, pre) {
             //view(model., pre?.a )
         }
     }
 
-    private fun view(model: ItemOption?, pre: ItemOption?) {
+    private fun view(model: MItemOption?, pre: MItemOption?) {
         checkView({}, model, pre) {
             //view(model., pre?.a )
         }

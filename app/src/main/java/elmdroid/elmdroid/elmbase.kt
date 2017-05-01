@@ -93,9 +93,10 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 //    val subNone = Sub(listOf<MSG>())
 
     // return model parts - reduced.
-    fun <T>ret(m:T, useQueNonePlusMsgs: Que<MSG>) = Pair<T, Que<MSG>>(m, useQueNonePlusMsgs)
-    fun <T>ret(m:T, msg:MSG) = Pair<T, Que<MSG>>(m, msg.que())
-    fun <T>ret(m:T) = Pair<T, Que<MSG>>(m, noneQue)
+    fun <T> ret(m: T, useQueNonePlusMsgs: Que<MSG>) = m to useQueNonePlusMsgs
+
+    fun <T> ret(m: T, msg: MSG) = m to msg.que()
+    fun <T> ret(m: T) = m to noneQue
 
 
 
