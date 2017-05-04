@@ -3,23 +3,15 @@
 package elmdroid.elmdroid
 
 import android.os.Bundle
+import org.junit.Assert.assertEquals
 import org.junit.Test
-
-import org.junit.Assert.*
 
 /**
  * Example local unit test, which will execute on the development machine (host).
 
  * @see [Testing documentation](http://d.android.com/tools/testing)
  */
-class ExampleUnitTest {
-
-        @Test
-        @Throws(Exception::class)
-        fun addition_isCorrect() {
-            assertEquals(4, (2 + 2).toLong())
-        }
-
+class FiboElmBaseTest {
 
     @Test
     @Throws(Exception::class)
@@ -52,7 +44,7 @@ class ExampleUnitTest {
     data class B(val v: Int = -100)
     data class Model(val a: A = A(), val b: B = B())
     sealed class Msg {
-        class Reset() : Msg()
+        class Reset : Msg()
         class Next(val steps: Int = 1) : Msg()
         class Update(val model: Model) : Msg()
     }
@@ -81,7 +73,7 @@ class ExampleUnitTest {
                     val (modelA, couldBeCommandsFromA) = update(msg, model.a)
                     val (modelB, couldBeCommandsFromB) = update(msg, model.b)
                     ret(model.copy(a=modelA, b=modelB),
-                            // just showing that we can concatinate lots of msgs after noneQue
+                            // just showing that we can concatenate lots of msgs after noneQue
                             noneQue + couldBeCommandsFromA + couldBeCommandsFromB)
                 }
                 is Msg.Reset -> ret(Model(a = A(0), b = B(1)))
