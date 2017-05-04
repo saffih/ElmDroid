@@ -5,20 +5,18 @@ package elmdroid.elmdroid
  * Copyright Joseph Hartal (Saffi)  23/04/17.
  */
 
-import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import android.os.Handler
-import android.view.View
-import android.view.ViewGroup
 
 /********************************/
 // que Que
 
 data class Que<T>(val lst:List<T>) : Iterable<T>{
     override fun iterator(): Iterator<T> = lst.iterator()
-    fun join(que: Que<T>?) = if (que == null) this else Que<T>(lst + que.lst)
+    fun join(another: List<T>) = Que<T>(lst + another)
     fun join(msg: T?) = if (msg == null) this else Que<T>(lst + msg)
+    fun join(que: Que<T>?) = if (que == null) this else join(que.lst)
 
     fun split() = Pair(
             // Msg part
@@ -26,60 +24,21 @@ data class Que<T>(val lst:List<T>) : Iterable<T>{
             // Que msg part. "batch" list
             if (lst.isEmpty()) this else Que(lst.drop(1)))
 
+    operator fun plus(another: List<T>) = this.join(another)
     operator fun plus(que: Que<T>?) = this.join(que)
     operator fun plus(msg: T) = this.join(msg)
 }
 fun <T>T.que(): Que<T> = Que(lst=listOf(this))
 
 
-//Wmodel / wraps proxy the model,  change the propery as usual. it would also hold
-//fun <M,  MSG>Pair<M, Que<MSG>>.join(other:Pair<M, Que<MSG>>) = Pair<M, Que<MSG>>()
-
-/********************************/
-//// Sub
-//data class Sub<T>(val lst:List<T>) : Iterable<T>{
-//    override fun iterator(): Iterator<T> = lst.iterator()
-//    fun join(msg: T?) = if (msg == null) this else Sub<T>(lst + msg)
-//    fun join(Sub: Sub<T>?) = if (Sub == null) this else Sub<T>(lst + Sub.lst)
-//
-//    fun split() = Pair(
-//            if (lst.isEmpty()) null else lst.first(),
-//            if (lst.isEmpty()) this else Sub(lst.drop(1)))
-//
-//    operator fun plus(msg: T) = this.join(msg)
-//    operator fun plus(Sub: Sub<T>?) = this.join(Sub)
-//}
-//fun <T>T.Sub(): Sub<T> = Sub(lst=listOf(this))
-
-
-/*************************
- * Droid type (polymorphism) adapters
- */
-sealed class ContentView
-{
-    data class ViewNoParams(val v: View) : ContentView()
-    data class ViewParams(val v: View, val lp: ViewGroup.LayoutParams) : ContentView()
-    data class ResId(val resId: Int) :  ContentView()
-    object Done : ContentView()
-
-    fun setContentViewIn(me: Activity) =
-            when(this){
-                is ViewNoParams -> me.setContentView(this.v)
-                is ViewParams -> me.setContentView(this.v, this.lp)
-                is ResId -> me.setContentView(this.resId)
-                is Done -> {}
-            }
-}
-
-
-// MC for internal use.
-typealias MC<M, MSG> = Pair<M, Que<MSG>>
 
 /**
  * ElmBase - Extending the POC.
  * Requires Msg Modle and implementation of the 3 methods:
  * init update and view
  * having Activity started and providing it.
+ * M generic type should be immutable all the way.
+ * MSG should be nested sealed classes with data class leafs (may use but not recommended using object instance)
  */
 abstract class ElmBase<M, MSG> (open val me: Context?){
 
@@ -87,17 +46,17 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
     // it is lazy since it is created after the view exist.
     private val mainHandler by lazy { Handler(me?.mainLooper) }
 
-    // empty typed lists.
-    // we use that as defaults, can be used to compare as well
+    // empty typed lists (immutable).
     val noneQue = Que(listOf<MSG>())
 //    val subNone = Sub(listOf<MSG>())
 
     // return model parts - reduced.
-    fun <T> ret(m: T, useQueNonePlusMsgs: Que<MSG>) = m to useQueNonePlusMsgs
+    fun <T> ret(m: T, que: Que<MSG>) = m to que
 
+    fun <T> ret(m: T, msgs: List<MSG>) = m to noneQue.join(msgs)
     fun <T> ret(m: T, msg: MSG) = m to msg.que()
+    // Empty list of commands
     fun <T> ret(m: T) = m to noneQue
-
 
 
     // Mandatory methods
@@ -106,6 +65,17 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
     // In Elm - update : Msg -> Model -> (Model, Que Msg)
     abstract fun update(msg: MSG, model: M) : Pair<M, Que<MSG>>
+
+    // Update helper - for Iterable a. delegate updates b. chain the commands in que
+    inline fun <M, SMSG : MSG> update(msg: SMSG,
+                                      iterable: Iterable<M>,
+                                      updateElement: (SMSG, M) -> Pair<M, Que<MSG>>
+
+    ): Pair<List<M>, Que<MSG>> {
+        val (mIt, qIt) = iterable.map({ updateElement(msg, it) }).unzip()
+        val que: Que<MSG> = qIt.reduce({ acc, q -> acc.join(q.lst) })
+        return mIt to que
+    }
 
     // In Elm - sub : subscriptions : Model -> Sub Msg
 
@@ -125,10 +95,11 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         render()
     }
 
-    // implementaton
-    var mc: Pair<M, Que<MSG>>?=null
-    var model_viewed:M?=null
+    // implementation vars - the latest state reference.
+    private var mc: Pair<M, Que<MSG>>? = null
+    private var model_viewed: M? = null
 
+    // expose our immutable model
     val model:M get () {
         val model=mc!!.first
         return model
@@ -162,8 +133,8 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         return res
     }
 
-
-    public fun postDispatch ( msg: MSG) {
+    // cross thread communication
+    fun postDispatch(msg: MSG) {
         mainHandler.post({dispatch(msg)})
     }
 
@@ -174,12 +145,14 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
     }
 
     fun dispatch(que: Que<MSG>){
+        // todo - fail early. add code for checking the thread identity
         val newMC = mainCompute(que, mc!!)
         val model = newMC.first
         callView(model)
         mc=newMC
     }
 
+    // sanity cnt - assert no concurrent modification.
     private var cnt=0
     private fun mainCompute(que: Que<MSG>, mc:Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
         if (cnt != 0) throw RuntimeException("concurrent innerloop! dispatch was called instead of postDispatch")
@@ -200,14 +173,14 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
 
         val tooLong = act()
-        if (tooLong) throw RuntimeException("too many commands " + mc2.second)
+        if (tooLong) throw RuntimeException("Do we have a loop ?, too many commands " + mc2.second)
 
         cnt -= 1
 
         return mc2
     }
 
-    public fun start(savedInstanceState: Bundle?=null): ElmBase<M, MSG> {
+    fun start(savedInstanceState: Bundle? = null): ElmBase<M, MSG> {
         assert(mc==null) { "Check if started more then once." }
         mc=init(savedInstanceState)
         dispatch()
