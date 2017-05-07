@@ -5,10 +5,9 @@ package elmdroid.elmdroid
  * Copyright Joseph Hartal (Saffi)  23/04/17.
  */
 
-import android.content.Context
-import android.os.Bundle
-import android.os.Handler
 
+import android.content.Context
+import android.os.*
 /********************************/
 // que Que
 
@@ -40,12 +39,9 @@ fun <T>T.que(): Que<T> = Que(lst=listOf(this))
  * M generic type should be immutable all the way.
  * MSG should be nested sealed classes with data class leafs (may use but not recommended using object instance)
  */
-abstract class ElmBase<M, MSG> (open val me: Context?){
 
-    // Get a handler that can be used to post to the main thread
-    // it is lazy since it is created after the view exist.
-    private val mainHandler by lazy { Handler(me?.mainLooper) }
 
+abstract class ElmEngine<M, MSG> (open val me: Context?){
     // empty typed lists (immutable).
     val noneQue = Que(listOf<MSG>())
 //    val subNone = Sub(listOf<MSG>())
@@ -97,6 +93,7 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
 
     // implementation vars - the latest state reference.
     private var mc: Pair<M, Que<MSG>>? = null
+    fun notStarted()= mc===null
     private var model_viewed: M? = null
 
     // expose our immutable model
@@ -131,11 +128,6 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         val mc2 = Pair(model, restQue)
         val res = if (msg==null) mc2 else cycleMsg(mc2, msg)
         return res
-    }
-
-    // cross thread communication
-    fun postDispatch(msg: MSG) {
-        mainHandler.post({dispatch(msg)})
     }
 
     // no locks - done in single view thread
@@ -180,10 +172,27 @@ abstract class ElmBase<M, MSG> (open val me: Context?){
         return mc2
     }
 
-    fun start(savedInstanceState: Bundle? = null): ElmBase<M, MSG> {
+    fun start(savedInstanceState: Bundle? = null): ElmEngine<M, MSG> {
         assert(mc==null) { "Check if started more then once." }
         mc=init(savedInstanceState)
         dispatch()
         return this
     }
 }
+
+/**
+ * For Activities having main Handler and dispatch.
+ */
+abstract class ElmBase<M, MSG> (override val me: Context?):ElmEngine<M, MSG>(me){
+
+    // Get a handler that can be used to post to the main thread
+    // it is lazy since it is created after the view exist.
+    private val mainHandler by lazy { Handler(me?.mainLooper) }
+
+    // cross thread communication
+    fun postDispatch(msg: MSG) {
+        mainHandler.post({dispatch(msg)})
+    }
+}
+
+

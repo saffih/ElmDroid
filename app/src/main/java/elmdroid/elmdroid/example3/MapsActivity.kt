@@ -1,6 +1,9 @@
 package elmdroid.elmdroid.example3
 
+import android.content.Context
+import android.location.Location
 import android.os.Bundle
+import android.os.Message
 import android.support.v4.app.FragmentActivity
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.LatLng
@@ -9,13 +12,29 @@ import elmdroid.elmdroid.ElmBase
 import elmdroid.elmdroid.Que
 
 import elmdroid.elmdroid.R
+import elmdroid.elmdroid.example3.gps.GpsService
+import elmdroid.elmdroid.example3.gps.toApi
+import elmdroid.elmdroid.service.client.ElmServiceClient
+import elmdroid.elmdroid.example3.gps.Msg as GpsMsg
+import elmdroid.elmdroid.example3.gps.Msg.Api as GpsMsgApi
+import elmdroid.elmdroid.service.client.Msg as ClientServiceMsg
 
 class MapsActivity : FragmentActivity() {
 
-    val myapp = ElmApp(this)
+    val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        myapp.start()
+        app.start()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        app.onStart()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        app.onStop()
     }
 }
 
@@ -29,6 +48,9 @@ sealed class Msg {
             class AddMarker(val markerOptions: MarkerOptions) : Map()
             class MoveCamera(val cameraUpdate: CameraUpdate) : Map()
         }
+
+        class GotLocation(val location: Location) : Activity()
+
     }
 }
 
@@ -45,12 +67,35 @@ data class MMap(val googleMap: GoogleMap? = null,
                 val camera: CameraUpdate? = null)
 
 class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMapReadyCallback {
+    inner class GpsElmServiceClient(me: Context) : ElmServiceClient<GpsMsgApi>(me, javaClassName = GpsService::class.java) {
+        override fun toMsg(message: Message): GpsMsgApi {
+            return message.toApi()
+        }
 
+        override fun onAPI(msg: GpsMsgApi) {
+            when (msg) {
+                is GpsMsgApi.NotifyLocation -> this@ElmApp.dispatch(Msg.Activity.GotLocation(msg.location))
+            }
+        }
+    }
+
+    val gps = GpsElmServiceClient(me)
+    fun onStart() {
+        // Bind to the service
+        gps.onStart()
+    }
+
+    fun onStop() {
+        // Unbind from the service
+        gps.onStop()
+    }
     override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
-            is Msg.Init -> ret(model)
+            is Msg.Init -> {
+                ret(model)
+            }
             is Msg.Activity -> {
                 val (activityModel, que) =
                         update(msg, model.activity)
@@ -61,10 +106,16 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
 
     fun update(msg: Msg.Activity, model: MActivity): Pair<MActivity, Que<Msg>> {
         return when (msg) {
-
             is Msg.Activity.Map -> {
                 val (mapModel, que) = update(msg, model.mMap)
                 ret(model.copy(mMap = mapModel), que)
+            }
+            is Msg.Activity.GotLocation -> {
+                val here = LatLng(msg.location.latitude, msg.location.longitude)
+
+                dispatch(Msg.Activity.Map.AddMarker(MarkerOptions().position(here).title("you are here")))
+                dispatch(Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(here)))
+                ret(model)
             }
         }
     }
@@ -137,6 +188,8 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         val sydney = LatLng(-34.0, 151.0)
         dispatch(Msg.Activity.Map.AddMarker(MarkerOptions().position(sydney).title("Marker in Sydney")))
         dispatch(Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(sydney)))
+//        gps.request(GpsMsg.Api.RequestLocation())
+
     }
 }
 

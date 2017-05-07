@@ -22,6 +22,7 @@
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
@@ -31,9 +32,9 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:scheme="https"
                     android:host="github.com"
-                    android:path="/saffih/ElmDroid" />
+                    android:path="/saffih/ElmDroid"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
         <activity
@@ -135,6 +136,11 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="elmdroid.elmdroid.example4.TabbedActivity" />
         </activity>
+
+        <service
+            android:name=".example3.gps.GpsService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>
