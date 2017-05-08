@@ -14,7 +14,6 @@ import elmdroid.elmdroid.service.Messageable
 
 
 enum class API {
-    Connected,
     RequestLocation,
     NotifyLocation
 }
@@ -32,10 +31,6 @@ sealed class Msg {
     }
 
     sealed class Api : Msg(), Messageable {
-        class Connected : Api() {
-            override fun toMessage(): Message = Message.obtain(null, API.Connected.ordinal)
-        }
-
         class RequestLocation : Api() {
             override fun toMessage(): Message = Message.obtain(null, API.RequestLocation.ordinal)
         }
@@ -49,7 +44,6 @@ sealed class Msg {
 
 fun Message.toApi(): Msg.Api {
     return when (this.what) {
-        API.Connected.ordinal -> Msg.Api.Connected()
         API.RequestLocation.ordinal -> Msg.Api.RequestLocation()
         API.NotifyLocation.ordinal -> Msg.Api.NotifyLocation(this.obj as Location)
         else -> {
@@ -105,9 +99,12 @@ class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Mo
                 return when (msg) {
                     is Msg.Response.Disabled -> {
                         enableGps()
+                        toast("disabled ${msg}")
+
                         ret(model.copy(forced = true))
                     }
                     is Msg.Response.Enabled -> {
+                        toast("enabled ${msg}")
                         ret(model.copy(enabled = true))
                     }
                     is Msg.Response.StatusChanged -> {
@@ -138,9 +135,6 @@ class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Mo
             }
             is Msg.Api.NotifyLocation -> {
                 // won't happen
-                ret(model)
-            }
-            is Msg.Api.Connected -> {
                 ret(model)
             }
         }

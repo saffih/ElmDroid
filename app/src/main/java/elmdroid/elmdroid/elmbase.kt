@@ -6,8 +6,14 @@ package elmdroid.elmdroid
  */
 
 
+import android.app.Activity
 import android.content.Context
-import android.os.*
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.support.v4.content.ContextCompat
+
 /********************************/
 // que Que
 
@@ -140,8 +146,8 @@ abstract class ElmEngine<M, MSG> (open val me: Context?){
         // todo - fail early. add code for checking the thread identity
         val newMC = mainCompute(que, mc!!)
         val model = newMC.first
-        callView(model)
         mc=newMC
+        callView(model)
     }
 
     // sanity cnt - assert no concurrent modification.
@@ -196,3 +202,24 @@ abstract class ElmBase<M, MSG> (override val me: Context?):ElmEngine<M, MSG>(me)
 }
 
 
+fun activityCheckForPermission(me: Activity, perm: String, code: Int, showExplanation: () -> Unit = {}): Boolean {
+    val permissionCheck = ContextCompat.checkSelfPermission(me, perm)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            // Should we show an explanation?
+            if (me.shouldShowRequestPermissionRationale(perm)) {
+
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                showExplanation()
+            } else {
+                // No explanation needed, we can request the permission.
+                me.requestPermissions(listOf(perm).toTypedArray(), code)
+            }
+        }
+    }
+    val recheck = ContextCompat.checkSelfPermission(me, perm)
+    return recheck == PackageManager.PERMISSION_GRANTED
+
+}

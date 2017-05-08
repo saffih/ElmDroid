@@ -1,5 +1,6 @@
 package elmdroid.elmdroid.example3
 
+import android.Manifest
 import android.content.Context
 import android.location.Location
 import android.os.Bundle
@@ -10,14 +11,16 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import elmdroid.elmdroid.ElmBase
 import elmdroid.elmdroid.Que
-
 import elmdroid.elmdroid.R
+import elmdroid.elmdroid.activityCheckForPermission
 import elmdroid.elmdroid.example3.gps.GpsService
 import elmdroid.elmdroid.example3.gps.toApi
 import elmdroid.elmdroid.service.client.ElmServiceClient
+import elmdroid.elmdroid.service.client.MService
 import elmdroid.elmdroid.example3.gps.Msg as GpsMsg
 import elmdroid.elmdroid.example3.gps.Msg.Api as GpsMsgApi
 import elmdroid.elmdroid.service.client.Msg as ClientServiceMsg
+
 
 class MapsActivity : FragmentActivity() {
 
@@ -49,6 +52,7 @@ sealed class Msg {
             class MoveCamera(val cameraUpdate: CameraUpdate) : Map()
         }
 
+        class FirstRequest : Activity()
         class GotLocation(val location: Location) : Activity()
 
     }
@@ -74,8 +78,12 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
 
         override fun onAPI(msg: GpsMsgApi) {
             when (msg) {
-                is GpsMsgApi.NotifyLocation -> this@ElmApp.dispatch(Msg.Activity.GotLocation(msg.location))
+                is GpsMsgApi.NotifyLocation -> this@ElmApp.postDispatch(Msg.Activity.GotLocation(msg.location))
             }
+        }
+
+        override fun onConnected(msg: MService) {
+            this@ElmApp.postDispatch(Msg.Activity.FirstRequest())
         }
     }
 
@@ -113,8 +121,17 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
             is Msg.Activity.GotLocation -> {
                 val here = LatLng(msg.location.latitude, msg.location.longitude)
 
-                dispatch(Msg.Activity.Map.AddMarker(MarkerOptions().position(here).title("you are here")))
-                dispatch(Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(here)))
+                val que = listOf(
+                        Msg.Activity.Map.AddMarker(MarkerOptions().position(here).title("you are here")),
+                        Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(here)))
+                ret(model, que)
+            }
+            is Msg.Activity.FirstRequest -> {
+                val perm = Manifest.permission.ACCESS_FINE_LOCATION
+                val code = 1
+                if (activityCheckForPermission(me, perm, code)) {
+                    gps.request(GpsMsg.Api.RequestLocation())
+                }
                 ret(model)
             }
         }
@@ -188,8 +205,6 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         val sydney = LatLng(-34.0, 151.0)
         dispatch(Msg.Activity.Map.AddMarker(MarkerOptions().position(sydney).title("Marker in Sydney")))
         dispatch(Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(sydney)))
-//        gps.request(GpsMsg.Api.RequestLocation())
-
     }
 }
 

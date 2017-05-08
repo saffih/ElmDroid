@@ -48,6 +48,8 @@ abstract class ElmServiceClient<API : Messageable>(override val me: Context,
         dispatch(Msg.Request(payload))
     }
 
+    open fun onConnected(msg: MService): Unit {}
+    open fun onDisconnected(msg: MService): Unit {}
     abstract fun onAPI(msg: API)
     abstract fun toMsg(message: Message): API
 
@@ -55,10 +57,7 @@ abstract class ElmServiceClient<API : Messageable>(override val me: Context,
     private val handler = object : Handler() {
         override fun handleMessage(message: Message) {
             val msg = toMsg(message)
-            if (msg == null) super.handleMessage(message)
-            else {
-                onAPI(msg)
-            }
+            onAPI(msg)
         }
     }
     private val replyMessenger = Messenger(handler)
@@ -116,6 +115,19 @@ abstract class ElmServiceClient<API : Messageable>(override val me: Context,
     }
 
     override fun view(model: Model, pre: Model?) {
+        val setup = {}
+        checkView(setup, model, pre) {
+            view(model.service, pre?.service)
+        }
+    }
+
+    private fun view(model: MService, pre: MService?) {
+        val setup = {}
+        checkView(setup, model, pre) {
+            if (model.bound) onConnected(model)
+            else onDisconnected(model)
+        }
+
     }
 
 
