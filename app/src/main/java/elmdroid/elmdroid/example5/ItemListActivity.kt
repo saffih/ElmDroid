@@ -21,17 +21,17 @@ class ItemListActivity : AppCompatActivity() {
      */
     private val app = ItemListElm(this)
 
-    // expose model the details.
-    val model get () = app.model
+    // expose myModel the details.
+    val model get () = app.myModel
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         itemListActivity=this
 
-        app.start(savedInstanceState)
+        app.start()
     }
 
     companion object {
-        // share the model
+        // share the myModel
         var itemListActivity:ItemListActivity? =null
 
     }

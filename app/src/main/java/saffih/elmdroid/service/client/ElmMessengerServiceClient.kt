@@ -1,4 +1,4 @@
-package elmdroid.elmdroid.service.client
+package saffih.elmdroid.service.client
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -10,10 +10,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.*
-import elmdroid.elmdroid.ElmEngine
-import elmdroid.elmdroid.Que
-import elmdroid.elmdroid.service.Messageable
+import android.os.Handler
+import android.os.IBinder
+import android.os.Message
+import android.os.Messenger
+import saffih.elmdroid.ElmEngine
+import saffih.elmdroid.Que
 
 
 sealed class Msg {
@@ -23,7 +25,7 @@ sealed class Msg {
         class Disconnected(val className: ComponentName) : Service()
     }
 
-    class Request(val payload: Messageable) : Msg()
+    class Request(val payload: Message) : Msg()
 }
 
 data class Model(val service: MService = MService())
@@ -33,30 +35,35 @@ data class MService(val mConnection: ServiceConnection? = null,
                     val bound: Boolean = false)
 
 
-abstract class ElmServiceClient<API : Messageable>(override val me: Context,
-                                                   val javaClassName: Class<*>) :
+abstract class ElmMessengerServiceClient<API>(override val me: Context,
+                                              val javaClassName: Class<*>,
+                                              val toApi: (Message) -> API,
+                                              val toMessage: (API) -> Message) :
         ElmEngine<Model, Msg>(me) {
     init {
         start()
     }
 
-    override fun init(savedInstanceState: Bundle?): Pair<Model, Que<Msg>> {
+    override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())
     }
 
-    fun request(payload: Messageable) {
+    fun request(payload: API) {
+        request(toMessage(payload))
+    }
+
+    private fun request(payload: Message) {
         dispatch(Msg.Request(payload))
     }
 
     open fun onConnected(msg: MService): Unit {}
     open fun onDisconnected(msg: MService): Unit {}
     abstract fun onAPI(msg: API)
-    abstract fun toMsg(message: Message): API
 
 
     private val handler = object : Handler() {
         override fun handleMessage(message: Message) {
-            val msg = toMsg(message)
+            val msg = toApi(message)
             onAPI(msg)
         }
     }
@@ -74,7 +81,7 @@ abstract class ElmServiceClient<API : Messageable>(override val me: Context,
                 ret(model.copy(service = m), c)
             }
             is Msg.Request -> {
-                val message = msg.payload.toMessage()
+                val message = msg.payload
                 message.replyTo = replyMessenger
                 model.service.messenger!!.send(message)
                 ret(model)
@@ -132,18 +139,21 @@ abstract class ElmServiceClient<API : Messageable>(override val me: Context,
 
 
     fun onStart() {
+//        start()
         // Bind to the service
         val startService = Intent(me, javaClassName)
         startService.putExtra("MESSENGER", replyMessenger)
 
-        me.bindService(startService, model.service.mConnection,
+        me.bindService(startService, myModel.service.mConnection,
                 Context.BIND_AUTO_CREATE)
     }
 
     fun onStop() {
         // Unbind from the service
-        if (model.service.bound)
-            me.unbindService(model.service.mConnection)
+        if (myModel.service.bound)
+            me.unbindService(myModel.service.mConnection)
     }
 
 }
+
+

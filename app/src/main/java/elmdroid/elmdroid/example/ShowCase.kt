@@ -1,7 +1,6 @@
 package elmdroid.elmdroid.example
 
 import android.os.Bundle
-import android.support.design.widget.NavigationView
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
@@ -12,12 +11,12 @@ class ShowCase : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start(savedInstanceState)
+        app.start()
     }
 
 
     override fun onBackPressed() {
-        if (DrawerOption.opened == app.model.activity.options.drawer.i) {
+        if (DrawerOption.opened == app.myModel.activity.options.drawer.i) {
             app.dispatch(Msg.Option.Drawer(DrawerOption.closed))
         } else {
             super.onBackPressed()
@@ -36,7 +35,7 @@ class ShowCase : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         app.dispatch(Msg.Option.ItemSelected(item))
-        if (app.model.activity.options.itemOption.handled) {
+        if (app.myModel.activity.options.itemOption.handled) {
             return true
         }
 

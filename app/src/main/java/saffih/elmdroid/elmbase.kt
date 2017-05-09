@@ -1,4 +1,4 @@
-package elmdroid.elmdroid
+package saffih.elmdroid
 
 /**
  *
@@ -10,7 +10,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Bundle
 import android.os.Handler
 import android.support.v4.content.ContextCompat
 
@@ -47,12 +46,12 @@ fun <T>T.que(): Que<T> = Que(lst=listOf(this))
  */
 
 
-abstract class ElmEngine<M, MSG> (open val me: Context?){
+abstract class ElmPattern<M, MSG>(open val me: Context?) {
+
     // empty typed lists (immutable).
     val noneQue = Que(listOf<MSG>())
-//    val subNone = Sub(listOf<MSG>())
 
-    // return model parts - reduced.
+    // return myModel parts - reduced.
     fun <T> ret(m: T, que: Que<MSG>) = m to que
 
     fun <T> ret(m: T, msgs: List<MSG>) = m to noneQue.join(msgs)
@@ -63,7 +62,7 @@ abstract class ElmEngine<M, MSG> (open val me: Context?){
 
     // Mandatory methods
     // Elm Init - init : (Model, Que Msg)
-    abstract fun init(savedInstanceState: Bundle?): Pair<M, Que<MSG>>
+    abstract fun init(): Pair<M, Que<MSG>>
 
     // In Elm - update : Msg -> Model -> (Model, Que Msg)
     abstract fun update(msg: MSG, model: M) : Pair<M, Que<MSG>>
@@ -79,13 +78,6 @@ abstract class ElmEngine<M, MSG> (open val me: Context?){
         return mIt to que
     }
 
-    // In Elm - sub : subscriptions : Model -> Sub Msg
-
-    //In Elm - view : Model -> Html Msg
-    open fun view(model: M) {
-        view(model, model_viewed)
-    }
-
     abstract fun  view(model: M, pre: M?)
 
 
@@ -97,13 +89,41 @@ abstract class ElmEngine<M, MSG> (open val me: Context?){
         render()
     }
 
+    fun dispatch(msg: MSG? = null) {
+        dispatch(msg?.que() ?: noneQue)
+    }
+
+    abstract fun dispatch(que: Que<MSG>)
+}
+
+abstract class ElmParent<M, MSG>(override val me: Context?) : ElmPattern<M, MSG>(me)
+
+
+abstract class ElmChild<M, MSG>(override val me: Context?, val dispatcher: (Que<MSG>) -> Unit) :
+        ElmPattern<M, MSG>(me) {
+    override fun dispatch(que: Que<MSG>) {
+        dispatcher(que)
+    }
+}
+
+
+abstract class ElmEngine<M, MSG>(override val me: Context?) : ElmParent<M, MSG>(me) {
+
+    // In Elm - sub : subscriptions : Model -> Sub Msg
+
+    //In Elm - view : Model -> Html Msg
+    open fun view(model: M) {
+        view(model, model_viewed)
+    }
+
+
     // implementation vars - the latest state reference.
     private var mc: Pair<M, Que<MSG>>? = null
     fun notStarted()= mc===null
     private var model_viewed: M? = null
 
-    // expose our immutable model
-    val model:M get () {
+    // expose our immutable myModel
+    val myModel: M get () {
         val model=mc!!.first
         return model
     }
@@ -138,11 +158,10 @@ abstract class ElmEngine<M, MSG> (open val me: Context?){
 
     // no locks - done in single view thread
     // it should be "locked" single inner loop and dispatch at a time.
-    fun dispatch(msg: MSG?=null){
-        dispatch( msg?.que()?: noneQue )
-    }
 
-    fun dispatch(que: Que<MSG>){
+
+    fun dispatch(lst: List<MSG>) = dispatch(Que(lst))
+    override fun dispatch(que: Que<MSG>) {
         // todo - fail early. add code for checking the thread identity
         val newMC = mainCompute(que, mc!!)
         val model = newMC.first
@@ -178,9 +197,12 @@ abstract class ElmEngine<M, MSG> (open val me: Context?){
         return mc2
     }
 
-    fun start(savedInstanceState: Bundle? = null): ElmEngine<M, MSG> {
+    /**
+     * If overriden - must be called to super
+     */
+    fun start(): ElmEngine<M, MSG> {
         assert(mc==null) { "Check if started more then once." }
-        mc=init(savedInstanceState)
+        mc = init()
         dispatch()
         return this
     }
@@ -189,7 +211,7 @@ abstract class ElmEngine<M, MSG> (open val me: Context?){
 /**
  * For Activities having main Handler and dispatch.
  */
-abstract class ElmBase<M, MSG> (override val me: Context?):ElmEngine<M, MSG>(me){
+abstract class ElmBase<M, MSG>(override val me: Context?) : ElmEngine<M, MSG>(me) {
 
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
@@ -202,7 +224,8 @@ abstract class ElmBase<M, MSG> (override val me: Context?):ElmEngine<M, MSG>(me)
 }
 
 
-fun activityCheckForPermission(me: Activity, perm: String, code: Int, showExplanation: () -> Unit = {}): Boolean {
+fun activityCheckForPermission(me: Activity, perm: String, code: Int,
+showExplanation: () -> Unit = {}): Boolean {
     val permissionCheck = ContextCompat.checkSelfPermission(me, perm)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
@@ -216,10 +239,12 @@ fun activityCheckForPermission(me: Activity, perm: String, code: Int, showExplan
             } else {
                 // No explanation needed, we can request the permission.
                 me.requestPermissions(listOf(perm).toTypedArray(), code)
+
             }
         }
     }
     val recheck = ContextCompat.checkSelfPermission(me, perm)
-    return recheck == PackageManager.PERMISSION_GRANTED
+    val res = (recheck == PackageManager.PERMISSION_GRANTED)
+    return res
 
 }

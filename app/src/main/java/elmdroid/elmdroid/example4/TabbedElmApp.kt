@@ -15,9 +15,9 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
+import saffih.elmdroid.ElmBase
+import saffih.elmdroid.Que
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -34,7 +34,7 @@ enum class ItemOption(val id: Int) {
 }
 
 sealed class  Msg {
-    class Init(savedInstanceState: Bundle?) : Msg()
+    class Init : Msg()
     sealed class Fab: Msg() {
         class Clicked(val view: View) : Fab()
     }
@@ -65,8 +65,8 @@ data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null
 // TOs transfer objects
 
 class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me){
-    override fun init(savedInstanceState: Bundle?): Pair<Model, Que<Msg>> {
-        return ret(Model(), Msg.Init(savedInstanceState))
+    override fun init(): Pair<Model, Que<Msg>> {
+        return ret(Model(), Msg.Init())
     }
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
@@ -85,7 +85,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
 
 
     fun update(msg: Msg, model: MActivity): Pair<MActivity, Que<Msg>> {
-//        return ret(model)
+//        return ret(myModel)
 
         return when(msg) {
 
@@ -166,7 +166,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
         }
 
         checkView(setup, model, pre) {
-            //            view(model.activity, pre?.activity )
+            //            view(myModel.activity, pre?.activity )
         }
     }
 
@@ -179,7 +179,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
         }
 
         checkView(setup, model, pre) {
-            //            view(model.activity, pre?.activity )
+            //            view(myModel.activity, pre?.activity )
         }
     }
 
@@ -203,7 +203,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
         }
 
         checkView(setup, model, pre) {
-            //            view(model.activity, pre?.activity )
+            //            view(myModel.activity, pre?.activity )
         }
     }
 
@@ -212,8 +212,8 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
 //
 //    }
 //
-//    checkView(setup, model, pre) {
-////            view(model.activity, pre?.activity )
+//    checkView(setup, myModel, pre) {
+////            view(myModel.activity, pre?.activity )
 //    }
 }
 

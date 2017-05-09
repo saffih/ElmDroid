@@ -26,7 +26,7 @@ class TabbedActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start(savedInstanceState)
+        app.start()
 
     }
 
@@ -39,7 +39,7 @@ class TabbedActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         app.dispatch(Msg.Options.ItemSelected(item))
-        if (app.model.activity.options.itemOption.handled) {
+        if (app.myModel.activity.options.itemOption.handled) {
             return true
         }
         return super.onOptionsItemSelected(item)

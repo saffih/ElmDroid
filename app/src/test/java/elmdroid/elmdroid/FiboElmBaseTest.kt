@@ -2,9 +2,10 @@
 
 package elmdroid.elmdroid
 
-import android.os.Bundle
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import saffih.elmdroid.ElmBase
+import saffih.elmdroid.Que
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -51,7 +52,7 @@ class FiboElmBaseTest {
 
 
     class App : ElmBase<Model, Msg>(me = null) {
-        override fun init(savedInstanceState: Bundle?) =
+        override fun init() =
                 //                ret(Model(A(0),B(1)))
                 ret(Model(), Msg.Reset())
 

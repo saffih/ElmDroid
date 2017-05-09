@@ -11,11 +11,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example5.ItemDetailActivity
 import elmdroid.elmdroid.example5.ItemDetailFragment
+import saffih.elmdroid.ElmBase
+import saffih.elmdroid.Que
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -100,7 +100,7 @@ data class MFab (
 )
 
 class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
-    override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
+    override fun init() = ret(Model(), Msg.Init)
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         val (activity, q)=update(msg, model.activity)
             return ret(model.copy(activity = activity), q)
@@ -139,7 +139,7 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
             is Msg.Recycler.ItemHolderClicked -> {
                 val item = model.get(msg.position)
 
-                if (this.model.activity.mTwoPane) {
+                if (this.myModel.activity.mTwoPane) {
                     val arguments = Bundle()
                     arguments.putString(ItemDetailFragment.ARG_ITEM_ID, item.id)//holder.mItem!!.id)
                     val fragment = ItemDetailFragment()
@@ -159,7 +159,7 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
         }
     }
     private fun  update(msg: Msg.Fab, model: MFab): Pair<MFab, Que<Msg>> {
-//        return ret(model)
+//        return ret(myModel)
         return when (msg) {
             is Msg.Fab.Clicked -> ret(model.copy(clicked = msg.v))
         }
@@ -183,14 +183,14 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
             view(model.fab, pre?.fab)
             view(model.toolbar, pre?.toolbar)
             view(model.items, pre?.items)
-//            view(model.itemDetails, pre?.itemDetails)
+//            view(myModel.itemDetails, pre?.itemDetails)
         }
     }
 
-//    private fun view(model: MItem?, pre: MItem?) {
+//    private fun view(myModel: MItem?, pre: MItem?) {
 //        val setup = {
 //        }
-//        checkView(setup, model, pre){
+//        checkView(setup, myModel, pre){
 //        }
 //
 //    }
@@ -226,7 +226,7 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
                  * position.
                  */
                 override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-                    val mActivity = this@ItemListElm.model.activity
+                    val mActivity = this@ItemListElm.myModel.activity
                     val mItem = mActivity.items.get(position)
 
                     if (mItem!=model.get(position)){
@@ -257,7 +257,7 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
     private fun view(model: MItem, pre: MItem?) {
         val setup = {}
         checkView(setup, model, pre){
-//            view(model.activity, pre?.activity)
+            //            view(myModel.activity, pre?.activity)
         }
     }
 
@@ -269,7 +269,7 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
             toolbar.title = me.title
         }
         checkView(setup, model, pre){
-            //            view(model, pre)
+            //            view(myModel, pre)
         }
     }
 
@@ -283,7 +283,7 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
             }
         }
         checkView(setup, model, pre){
-//            view(model.snackbar, pre?.snackbar)
+            //            view(myModel.snackbar, pre?.snackbar)
         }
     }
 

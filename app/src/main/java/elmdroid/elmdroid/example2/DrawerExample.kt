@@ -16,7 +16,7 @@ class DrawerExample : AppCompatActivity() {
 
 
     override fun onBackPressed() {
-        if (DrawerOption.opened == app.model.activity.options.drawer.i) {
+        if (DrawerOption.opened == app.myModel.activity.options.drawer.i) {
             app.dispatch(Msg.Option.Drawer(DrawerOption.closed))
         } else {
             super.onBackPressed()
@@ -35,7 +35,7 @@ class DrawerExample : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         app.dispatch(Msg.Option.ItemSelected(item))
-        if (app.model.activity.options.itemOption.handled) {
+        if (app.myModel.activity.options.itemOption.handled) {
             return true
         }
 

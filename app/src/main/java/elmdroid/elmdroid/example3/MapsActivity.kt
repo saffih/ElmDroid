@@ -4,22 +4,21 @@ import android.Manifest
 import android.content.Context
 import android.location.Location
 import android.os.Bundle
-import android.os.Message
 import android.support.v4.app.FragmentActivity
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
-import elmdroid.elmdroid.activityCheckForPermission
-import elmdroid.elmdroid.example3.gps.GpsService
-import elmdroid.elmdroid.example3.gps.toApi
-import elmdroid.elmdroid.service.client.ElmServiceClient
-import elmdroid.elmdroid.service.client.MService
-import elmdroid.elmdroid.example3.gps.Msg as GpsMsg
-import elmdroid.elmdroid.example3.gps.Msg.Api as GpsMsgApi
-import elmdroid.elmdroid.service.client.Msg as ClientServiceMsg
+import saffih.elmdroid.ElmBase
+import saffih.elmdroid.Que
+import saffih.elmdroid.activityCheckForPermission
+import saffih.elmdroid.gps.GpsService
+import saffih.elmdroid.gps.child.*
+import saffih.elmdroid.service.client.ElmMessengerServiceClient
+import saffih.elmdroid.service.client.MService
+import saffih.elmdroid.gps.child.Msg as GpsMsg
+import saffih.elmdroid.gps.child.Msg.Api as GpsMsgApi
+import saffih.elmdroid.service.client.Msg as ClientServiceMsg
 
 
 class MapsActivity : FragmentActivity() {
@@ -71,10 +70,10 @@ data class MMap(val googleMap: GoogleMap? = null,
                 val camera: CameraUpdate? = null)
 
 class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMapReadyCallback {
-    inner class GpsElmServiceClient(me: Context) : ElmServiceClient<GpsMsgApi>(me, javaClassName = GpsService::class.java) {
-        override fun toMsg(message: Message): GpsMsgApi {
-            return message.toApi()
-        }
+    inner class GpsElmRemoteServiceClient(me: Context) :
+            ElmMessengerServiceClient<GpsMsgApi>(me, javaClassName = GpsService::class.java,
+                    toApi = { it.toApi() },
+                    toMessage = { it.toMessage() }) {
 
         override fun onAPI(msg: GpsMsgApi) {
             when (msg) {
@@ -87,7 +86,7 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         }
     }
 
-    val gps = GpsElmServiceClient(me)
+    val gps = GpsElmRemoteServiceClient(me)
     fun onStart() {
         // Bind to the service
         gps.onStart()
@@ -97,7 +96,8 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         // Unbind from the service
         gps.onStop()
     }
-    override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
+
+    override fun init() = ret(Model(), Msg.Init)
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
@@ -129,10 +129,12 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
             is Msg.Activity.FirstRequest -> {
                 val perm = Manifest.permission.ACCESS_FINE_LOCATION
                 val code = 1
-                if (activityCheckForPermission(me, perm, code)) {
+                if (activityCheckForPermission(me, perm, code) ){
                     gps.request(GpsMsg.Api.RequestLocation())
+                    ret(model)
+                }else {
+                    ret(model, msg)
                 }
-                ret(model)
             }
         }
     }

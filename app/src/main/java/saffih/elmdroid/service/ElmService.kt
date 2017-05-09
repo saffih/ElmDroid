@@ -1,10 +1,10 @@
-package elmdroid.elmdroid.service
+package saffih.elmdroid.service
 
 import android.app.Service
 import android.content.Intent
 import android.os.*
 import android.widget.Toast
-import elmdroid.elmdroid.ElmEngine
+import saffih.elmdroid.ElmEngine
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -12,16 +12,18 @@ import elmdroid.elmdroid.ElmEngine
  */
 
 
-interface Messageable {
-    fun toMessage(): Message
-}
+//interface Messageable {
+//    fun toMessage(): Message
+//}
 
 
-abstract class ElmMessengerBoundService<M, MSG>(override val me: Service?) :
-        ElmEngine<M, MSG>(me) {
-    init {
-        start()
-    }
+abstract class ElmMessengerBoundService<M, MSG, API:MSG>(override val me: Service?,
+                                                           val toMessage: (API) -> Message,
+                                                           val toApi: (Message) -> API) :
+        ElmEngine<M, MSG>(me)  {
+//    init {
+//        start()
+//    }
 
     fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
         val handler = Handler(Looper.getMainLooper())
@@ -29,22 +31,10 @@ abstract class ElmMessengerBoundService<M, MSG>(override val me: Service?) :
     }
 
 
-    /**
-     * must translate from the
-     */
-    abstract fun toMsg(message: Message): MSG?
-
-    fun fromMsg(msg: MSG): android.os.Message {
-        if (msg is Messageable) {
-            return msg.toMessage()
-        } else {
-            throw RuntimeException("${msg} has no reverse to Message")
-        }
-    }
-
     private var lastincomingMessage: Message? = null
-    protected fun dispatchReply(msg: MSG) {
-        val message = fromMsg(msg)
+
+    protected fun dispatchReply(msg: API) {
+        val message = toMessage(msg)
         val last = lastincomingMessage!!
         val replyTo = last.replyTo
         if (replyTo !== null) {
@@ -59,7 +49,7 @@ abstract class ElmMessengerBoundService<M, MSG>(override val me: Service?) :
     private val handler = object : Handler() {
         override fun handleMessage(message: Message) {
             lastincomingMessage = message
-            val msg = toMsg(message)
+            val msg = toApi(message)
             if (msg == null) {
                 super.handleMessage(message)
             } else {
@@ -90,8 +80,9 @@ abstract class ElmMessengerBoundService<M, MSG>(override val me: Service?) :
     }
 
     fun onCreate() { // for long lived services
+        start()
     }
 
-    fun onDestroy() {}
 
+    fun onDestroy() {}
 }

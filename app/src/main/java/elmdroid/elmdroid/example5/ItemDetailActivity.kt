@@ -17,7 +17,7 @@ class ItemDetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start(savedInstanceState)
+        app.start()
     }
 
     //    override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -40,7 +40,7 @@ class ItemDetailActivity : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         app.dispatch(Msg.Option.ItemSelected(item))
-        if (app.model.activity.options.itemOption.handled) {
+        if (app.myModel.activity.options.itemOption.handled) {
             return true
         }
 

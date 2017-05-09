@@ -138,7 +138,7 @@
         </activity>
 
         <service
-            android:name=".example3.gps.GpsService"
+            android:name="saffih.elmdroid.gps.GpsService"
             android:enabled="true"
             android:exported="true"></service>
     </application>

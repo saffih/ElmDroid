@@ -9,10 +9,10 @@ import android.support.v7.widget.Toolbar
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
-import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example5.ItemDetailFragment
+import saffih.elmdroid.ElmBase
+import saffih.elmdroid.Que
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -30,7 +30,7 @@ enum class ItemOption(val id: Int) {
 
 
 sealed class Msg {
-    class Init(val savedInstanceState: Bundle?=null) : Msg()
+    class Init : Msg()
 
     sealed class Fab : Msg(){
         class Clicked(val v: MFabClicked) : Fab()
@@ -57,7 +57,7 @@ fun Msg.Action.UIToast.show(me: Context) {
  * Model representing the state of the system
  * All Model types are Prefixed with M
  */
-data class Model (val activity : MActivity= MActivity())
+data class Model(val activity: MActivity = MActivity(), val hadSavedState: Boolean = false)
 data class MActivity (val toolbar : MToolbar= MToolbar(),
                       val fab: MFab = MFab(),
                       val options: MOptions = MOptions()
@@ -75,16 +75,17 @@ data class MOptions(val itemOption: MItemOption = MItemOption())
 data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
-    override fun init(savedInstanceState: Bundle?): Pair<Model, Que<Msg>> {
-        return  ret(Model(), Msg.Init(savedInstanceState))
+    var savedInstanceState: Bundle? = null
+    fun onCreate(savedInstanceState: Bundle?) {
+        this.savedInstanceState = savedInstanceState
+    }
+
+    override fun init(): Pair<Model, Que<Msg>> {
+        return ret(Model().copy(hadSavedState = (savedInstanceState != null)),
+                Msg.Init())
     }
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
-        val (activity, q) = update(msg, model.activity)
-        return ret(model.copy(activity = activity), q)
-    }
-
-    private fun update(msg: Msg, model: MActivity): Pair<MActivity, Que<Msg>> {
         return when (msg) {
             is Msg.Init -> {
                 // savedInstanceState is non-null when there is fragment state
@@ -96,7 +97,7 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
                 //
                 // http://developer.android.com/guide/components/fragments.html
                 //
-                if (msg.savedInstanceState == null) {
+                if (model.hadSavedState) {
                     // Create the detail fragment and add it to the activity
                     // using a fragment transaction.
                     val arguments = Bundle()
@@ -110,16 +111,34 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
                 }
                 ret(model)
             }
-            is Msg.Fab.Clicked -> {
-                val (mFab, q) = update(msg, model.fab)
-                ret(model.copy(fab=mFab), q)
+            is Msg.Fab -> {
+                val (activity, q) = update(msg, model.activity)
+                ret(model.copy(activity = activity), q)
             }
-            is Msg.Action.DoSomething -> {
-                ret(model)
+            is Msg.Action -> {
+                val (activity, q) = update(msg, model.activity)
+                ret(model.copy(activity = activity), q)
             }
             is Msg.Option -> {
-                val (m, c) = update(msg, model.options)
-                ret(model.copy(options = m), c)
+                val (activity, q) = update(msg, model.activity)
+                ret(model.copy(activity = activity), q)
+            }
+        }
+    }
+
+    private fun update(msg: Msg.Fab, model: MActivity): Pair<MActivity, Que<Msg>> {
+        return when (msg) {
+            is Msg.Fab.Clicked -> {
+                val (mFab, q) = update(msg, model.fab)
+                ret(model.copy(fab = mFab), q)
+            }
+        }
+    }
+
+    private fun update(msg: Msg.Action, model: MActivity): Pair<MActivity, Que<Msg>> {
+        return when (msg) {
+            is Msg.Action.DoSomething -> {
+                ret(model)
             }
             is Msg.Action.UIToast -> {
                 msg.show(me)
@@ -128,8 +147,17 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
         }
     }
 
+    private fun update(msg: Msg.Option, model: MActivity): Pair<MActivity, Que<Msg>> {
+        return when (msg) {
+            is Msg.Option -> {
+                val (m, c) = update(msg, model.options)
+                ret(model.copy(options = m), c)
+            }
+        }
+    }
+
     fun update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
-//        return ret(model)
+//        return ret(myModel)
         return when (msg) {
 
             is Msg.Option.ItemSelected -> {
@@ -140,7 +168,7 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
     }
 
     private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
-//        return ret(model)
+//        return ret(myModel)
         val itemOption = ItemOption.byId(msg.item.itemId)
         return if (itemOption == null) ret(MItemOption(handled = false))
         else when (itemOption) {
@@ -206,7 +234,7 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
         val setup = {
         }
         checkView(setup, model, pre) {
-//            view(model.x, pre?.x)
+            //            view(myModel.x, pre?.x)
         }
     }
 
@@ -218,13 +246,13 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
 
         checkView(setup, model, pre)
         {
-            //            view(model., pre.)
+            //            view(myModel., pre.)
         }
     }
 //        val setup = {
 //        }
-//        checkView(setup, model, pre) {
-//            view(model.x, pre?.x)
+//        checkView(setup, myModel, pre) {
+//            view(myModel.x, pre?.x)
 //        }
 
 
@@ -234,8 +262,8 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
 
 //    val setup = {
 //    }
-//    checkView(setup, model, pre){
-////            view(model., pre.)
+//    checkView(setup, myModel, pre){
+////            view(myModel., pre.)
 //    }
 
 

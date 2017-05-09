@@ -2,7 +2,6 @@ package elmdroid.elmdroid.example2
 
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.NavigationView
 import android.support.design.widget.Snackbar
@@ -14,10 +13,10 @@ import android.support.v7.widget.Toolbar
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
-import elmdroid.elmdroid.ElmBase
-import elmdroid.elmdroid.Que
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example2orig.Example2OrigDrawer
+import saffih.elmdroid.ElmBase
+import saffih.elmdroid.Que
 
 /**
 * Copyright Joseph Hartal (Saffi)
@@ -55,7 +54,7 @@ enum class ItemOption(val id: Int) {
 
 /**
  * Messages:
- * Init - inital start of the app, default model.
+ * Init - inital start of the app, default myModel.
  * the drawer property default opened = false therefor the start with the drawer closed.
  *
  * Fab - is the FloatActionBar which is activate by click
@@ -128,7 +127,7 @@ data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
         NavigationView.OnNavigationItemSelectedListener {
-    override fun init(savedInstanceState: Bundle?) = ret(Model(), Msg.Init)
+    override fun init() = ret(Model(), Msg.Init)
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
@@ -189,7 +188,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
     }
 
     private fun update(msg: Msg.Option.Navigation, model: MNavOption): Pair<MNavOption, Que<Msg>> {
-        //        return ret(model)
+        //        return ret(myModel)
         val item = msg.item
         // Handle navigation view item clicks here.
         val id = item.itemId
@@ -199,7 +198,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
         } else {
             // either use action - more idiomatic like this
             //when (nav) {
-            //    NavOption.Camera -> ret(model.copy(nav = nav, toDisplay = true),
+            //    NavOption.Camera -> ret(myModel.copy(nav = nav, toDisplay = true),
             //            Msg.Action.UIToast("${nav} not Implemented"))
             //}
             // or just toast.
@@ -345,7 +344,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
     }
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         dispatch(Msg.Option.Navigation(item))
-        return this.model.activity.options.navOption.toDisplay
+        return this.myModel.activity.options.navOption.toDisplay
     }
 
 }

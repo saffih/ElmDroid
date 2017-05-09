@@ -1,43 +1,60 @@
+package saffih.elmdroid.gps.child
+
 /**
  * Copyright Joseph Hartal (Saffi)
- * Created by saffi on 29/04/17.
+ * Created by saffi on 9/05/17.
  */
-package elmdroid.elmdroid.example3.gps
 
+
+import android.content.Context
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Handler
+import android.os.Looper
 import android.os.Message
-import elmdroid.elmdroid.Que
-import elmdroid.elmdroid.service.ElmMessengerBoundService
-import elmdroid.elmdroid.service.Messageable
+import android.widget.Toast
+import saffih.elmdroid.ElmChild
+import saffih.elmdroid.Que
 
 
+sealed class Msg {
+    class Init : Msg()
+    sealed class Response : Msg() {
+        data class Disabled(val provider: String) : Response()
+        data class Enabled(val provider: String) : Response()
+        data class StatusChanged(val provider: String,
+                                 val status: Int,
+                                 val extras: android.os.Bundle? = null) : Response()
+
+        data class LocationChanged(val location: Location) : Response()
+    }
+    sealed class Step:Msg(){
+        class Start():Step()
+        class Done(val location: Location) :Step()
+    }
+    sealed class Api : Msg() {
+        class RequestLocation : Api()
+        class NotifyLocation(val location: Location) : Api()
+
+
+    }
+}
+
+
+/**
+ * For Remoting
+ */
 enum class API {
     RequestLocation,
     NotifyLocation
 }
 
-sealed class Msg {
-    class Init : Msg()
-    sealed class Response : Msg() {
-        data class Disabled(val provider: String) : Msg.Response()
-        data class Enabled(val provider: String) : Msg.Response()
-        data class StatusChanged(val provider: String,
-                                 val status: Int,
-                                 val extras: android.os.Bundle? = null) : Msg.Response()
 
-        data class LocationChanged(val location: Location) : Msg.Response()
-    }
-
-    sealed class Api : Msg(), Messageable {
-        class RequestLocation : Api() {
-            override fun toMessage(): Message = Message.obtain(null, API.RequestLocation.ordinal)
-        }
-
-        class NotifyLocation(val location: Location) : Api() {
-            override fun toMessage(): Message = Message.obtain(null, API.NotifyLocation.ordinal, location)
-        }
+fun Msg.Api.toMessage(): Message {
+    return when (this) {
+        is Msg.Api.RequestLocation -> Message.obtain(null, API.RequestLocation.ordinal)
+        is Msg.Api.NotifyLocation -> Message.obtain(null, API.NotifyLocation.ordinal, location)
     }
 }
 
@@ -51,6 +68,7 @@ fun Message.toApi(): Msg.Api {
         }
     }
 }
+///////////////////////////////////
 
 
 data class Model(
@@ -59,37 +77,30 @@ data class Model(
         val lastLocation: Location? = null,
         val time: java.util.Date? = null,
         val status: Int = 0,
-        val api: MApi = MApi()
+        val state: MState = MState()
 )
 
-data class MApi(val listeners: List<LocationAdapter> = listOf<LocationAdapter>())
+data class MState(val listeners: List<LocationAdapter> = listOf<LocationAdapter>())
 
 
-class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Model, Msg>(me) {
+class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : ElmChild<Model, Msg>(me, dispatcher) {
 
 
-    override fun toMsg(message: android.os.Message): Msg? {
-        return message.toApi()
-    }
-
-
-    override fun init(savedInstanceState: android.os.Bundle?): Pair<Model, Que<Msg>> {
+    override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())
     }
 
+    /**
+     * The parent delegator should use the following pattern
+     *     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+     *     val (m, c) = child.update(msg, model)
+     *     // send response
+     *     c.lst.forEach { if (it is Msg.Api) dispatchReply(it) }
+     *     // process rest
+     *     return ret(m, c.lst.filter { it !is Msg.Api })
+     *     }
 
-    fun enableGps() {
-        val intent = android.content.Intent("android.location.GPS_ENABLED_CHANGE")
-        intent.putExtra("enabled", true)
-        me.sendBroadcast(intent)
-    }
-
-    fun disableGps() {
-        val intent = android.content.Intent("android.location.GPS_ENABLED_CHANGE")
-        intent.putExtra("enabled", false)
-        me.sendBroadcast(intent)
-    }
-
+     */
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         return when (msg) {
             is Msg.Init -> {
@@ -98,7 +109,6 @@ class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Mo
             is Msg.Response -> {
                 return when (msg) {
                     is Msg.Response.Disabled -> {
-                        enableGps()
                         toast("disabled ${msg}")
 
                         ret(model.copy(forced = true))
@@ -112,48 +122,65 @@ class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Mo
                         ret(model)
                     }
                     is Msg.Response.LocationChanged -> {
-                        if (model.forced) {
-                            disableGps()
-                        }
-                        ret(model.copy(lastLocation = msg.location))
+                        ret(model.copy(lastLocation = msg.location),
+                                Msg.Step.Done(msg.location))
                     }
                 }
             }
             is Msg.Api -> {
-                val (m, c) = update(msg, model.api)
-                ret(model.copy(api = m))
+                val (m, c) = update(msg, model.state)
+                ret(model.copy(state = m), c)
+            }
+            is Msg.Step -> {
+                val (m, c) = update(msg, model.state)
+                ret(model.copy(state = m), c)
+            }
+
+        }
+    }
+
+    private fun update(msg: Msg.Step, model: MState): Pair<MState, Que<Msg>> {
+        return when(msg){
+            is Msg.Step.Start ->
+                if (model.listeners.isEmpty())
+                    ret(model.copy(listeners = startListenToGps()))
+                else
+                    ret(model)
+            is Msg.Step.Done -> {
+                model.listeners.forEach { it.unregister() }
+                ret(model.copy(listeners = listOf()), Msg.Api.NotifyLocation(msg.location))
+
             }
         }
     }
 
-    fun update(msg: Msg.Api, model: MApi): Pair<MApi, Que<Msg>> {
+    fun update(msg: Msg.Api, model: MState): Pair<MState, Que<Msg>> {
         return when (msg) {
-            is Msg.Api.RequestLocation -> {
-                if (model.listeners.isEmpty())
-                    ret(model.copy(listeners = startListenToGps()))
-                else ret(model)
-            }
-            is Msg.Api.NotifyLocation -> {
-                // won't happen
+            is Msg.Api.RequestLocation -> ret(model, Msg.Step.Start())
+            is Msg.Api.NotifyLocation ->
+                // only on testing since the command should be processed
                 ret(model)
-            }
         }
-
     }
 
     override fun view(model: Model, pre: Model?) {
         val setup = {}
         checkView(setup, model.lastLocation, pre?.lastLocation) {
             toast("LocationChanged  ${model}")
-            dispatchReply(Msg.Api.NotifyLocation(model.lastLocation!!))
         }
     }
 
 
 }
 
-fun GpsElm.startListenToGps(): List<LocationAdapter> {
-    val lm: LocationManager = me.getSystemService(android.content.Context.LOCATION_SERVICE)
+fun ElmGpsChild.toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
+    val handler = Handler(Looper.getMainLooper())
+    handler.post({ Toast.makeText(me, txt, duration).show() })
+}
+
+
+fun ElmGpsChild.startListenToGps(): List<LocationAdapter> {
+    val lm: LocationManager = me.getSystemService(Context.LOCATION_SERVICE)
             as LocationManager
 
     val allListeners = listOf(
