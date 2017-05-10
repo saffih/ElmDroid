@@ -27,9 +27,9 @@ class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Mo
         val (m, c) = child.update(msg, model)
 
         // send response
-        c.lst.forEach { if (it is Msg.Api) dispatchReply(it) }
+        c.lst.filter{ it.isReply() } . forEach { dispatchReply(it as Msg.Api) }
         // process rest
-        return ret(m, c.lst.filter { it !is Msg.Api })
+        return ret(m, c)//.lst.filter { it !is Msg.Api })
     }
 
     override fun view(model: Model, pre: Model?) {

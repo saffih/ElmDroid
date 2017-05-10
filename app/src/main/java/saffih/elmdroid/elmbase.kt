@@ -221,11 +221,32 @@ abstract class ElmBase<M, MSG>(override val me: Context?) : ElmEngine<M, MSG>(me
     fun postDispatch(msg: MSG) {
         mainHandler.post({dispatch(msg)})
     }
+
+    open fun onPause() {
+
+    }
+
+
+    open fun onResume() {
+    }
+
+    open fun onStart() {
+
+    }
+    open fun onStop() {
+
+    }
 }
 
 
 fun activityCheckForPermission(me: Activity, perm: String, code: Int,
-showExplanation: () -> Unit = {}): Boolean {
+                               showExplanation: () -> Unit = {}): Boolean {
+
+    val pm = me.packageManager
+    val hasPerm = pm.checkPermission(perm, me.packageName)
+    if (hasPerm == PackageManager.PERMISSION_GRANTED) {
+        return true
+    }
     val permissionCheck = ContextCompat.checkSelfPermission(me, perm)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         if (permissionCheck != PackageManager.PERMISSION_GRANTED) {

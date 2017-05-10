@@ -7,6 +7,9 @@
            location permissions for the 'MyLocation' functionality.
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
 
     <application
         android:allowBackup="true"
@@ -141,6 +144,7 @@
             android:name="saffih.elmdroid.gps.GpsService"
             android:enabled="true"
             android:exported="true"></service>
+        
     </application>
 
 </manifest>

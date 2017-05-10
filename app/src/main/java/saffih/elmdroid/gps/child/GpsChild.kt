@@ -19,6 +19,7 @@ import saffih.elmdroid.Que
 
 
 sealed class Msg {
+    fun isReply() = this is Api.Reply
     class Init : Msg()
     sealed class Response : Msg() {
         data class Disabled(val provider: String) : Response()
@@ -34,9 +35,13 @@ sealed class Msg {
         class Done(val location: Location) :Step()
     }
     sealed class Api : Msg() {
-        class RequestLocation : Api()
-        class NotifyLocation(val location: Location) : Api()
+        sealed class Request : Api() {
+              class Location : Request()
+        }
 
+        sealed class Reply : Api() {
+            class NotifyLocation(val location: Location) : Reply()
+        }
 
     }
 }
@@ -53,16 +58,16 @@ enum class API {
 
 fun Msg.Api.toMessage(): Message {
     return when (this) {
-        is Msg.Api.RequestLocation -> Message.obtain(null, API.RequestLocation.ordinal)
-        is Msg.Api.NotifyLocation -> Message.obtain(null, API.NotifyLocation.ordinal, location)
+        is Msg.Api.Request.Location -> Message.obtain(null, API.RequestLocation.ordinal)
+        is Msg.Api.Reply.NotifyLocation -> Message.obtain(null, API.NotifyLocation.ordinal, location)
     }
 }
 
 
 fun Message.toApi(): Msg.Api {
     return when (this.what) {
-        API.RequestLocation.ordinal -> Msg.Api.RequestLocation()
-        API.NotifyLocation.ordinal -> Msg.Api.NotifyLocation(this.obj as Location)
+        API.RequestLocation.ordinal -> Msg.Api.Request.Location()
+        API.NotifyLocation.ordinal -> Msg.Api.Reply.NotifyLocation(this.obj as Location)
         else -> {
             throw RuntimeException("${this} has no 'what' value set")
         }
@@ -128,6 +133,7 @@ class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
                 }
             }
             is Msg.Api -> {
+
                 val (m, c) = update(msg, model.state)
                 ret(model.copy(state = m), c)
             }
@@ -148,7 +154,7 @@ class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
                     ret(model)
             is Msg.Step.Done -> {
                 model.listeners.forEach { it.unregister() }
-                ret(model.copy(listeners = listOf()), Msg.Api.NotifyLocation(msg.location))
+                ret(model.copy(listeners = listOf()), Msg.Api.Reply.NotifyLocation(msg.location))
 
             }
         }
@@ -156,9 +162,9 @@ class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
 
     fun update(msg: Msg.Api, model: MState): Pair<MState, Que<Msg>> {
         return when (msg) {
-            is Msg.Api.RequestLocation -> ret(model, Msg.Step.Start())
-            is Msg.Api.NotifyLocation ->
-                // only on testing since the command should be processed
+            is Msg.Api.Request.Location -> ret(model, Msg.Step.Start())
+            is Msg.Api.Reply.NotifyLocation ->
+                // the client got my response.
                 ret(model)
         }
     }

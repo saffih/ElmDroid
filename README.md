@@ -1,8 +1,13 @@
 # ElmDroid
-Elm style POC for droid
+Elm style Init/Update/View for the droid.
+
+# Extended 
+- The maps example was extended with Gps service by Messenger.
+- The Hello world example has additional broadcast listener accepting incoming sms. 
+- Use of delegation into sub module. Hello Example use a "child" pattern delegate to Turtle.
 
 `Inspired by:` 
-- [Elm]](http://elm-lang.org/)
+- [Elm](http://elm-lang.org/)
 - [Kotlin](https://kotlinlang.org/)
 - [@lungos POC](https://github.com/glung/elm-architecture-android) 
 - [Redux](http://redux.js.org/docs/introduction/PriorArt.html)

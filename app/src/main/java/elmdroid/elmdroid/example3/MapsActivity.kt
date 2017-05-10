@@ -77,7 +77,7 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
 
         override fun onAPI(msg: GpsMsgApi) {
             when (msg) {
-                is GpsMsgApi.NotifyLocation -> this@ElmApp.postDispatch(Msg.Activity.GotLocation(msg.location))
+                is saffih.elmdroid.gps.child.Msg.Api.Reply.NotifyLocation -> this@ElmApp.postDispatch(Msg.Activity.GotLocation(msg.location))
             }
         }
 
@@ -87,12 +87,12 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
     }
 
     val gps = GpsElmRemoteServiceClient(me)
-    fun onStart() {
+    override fun onStart() {
         // Bind to the service
         gps.onStart()
     }
 
-    fun onStop() {
+    override fun onStop() {
         // Unbind from the service
         gps.onStop()
     }
@@ -130,7 +130,7 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
                 val perm = Manifest.permission.ACCESS_FINE_LOCATION
                 val code = 1
                 if (activityCheckForPermission(me, perm, code) ){
-                    gps.request(GpsMsg.Api.RequestLocation())
+                    gps.request(saffih.elmdroid.gps.child.Msg.Api.Request.Location())
                     ret(model)
                 }else {
                     ret(model, msg)
