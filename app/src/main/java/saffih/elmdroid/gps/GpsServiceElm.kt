@@ -4,20 +4,28 @@
  */
 package saffih.elmdroid.gps
 
+import android.app.Service
+import android.location.Location
 import saffih.elmdroid.Que
+import saffih.elmdroid.bind
 import saffih.elmdroid.gps.child.*
 import saffih.elmdroid.service.ElmMessengerBoundService
 
 
-class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Model, Msg, Msg.Api>(me,
+class GpsElm(me: Service) : ElmMessengerBoundService<Model, Msg, Msg.Api>(me,
         toApi = { it.toApi() },
         toMessage = { it.toMessage() }) {
-    val child = ElmGpsChild(me, { dispatch(it) })
 
-//    private fun dispatchBack(que: Que<Msg>) {
-//
-//        que.lst.forEach { dispatchReply(it as Msg.Api) }
-//    }
+    private val child = bind(object : ElmGpsChild(me) {
+        override fun onReplyNotifyLocation(replyMsg: Msg.Api.Reply.NotifyLocation) {
+            dispatchReply(replyMsg)
+        }
+
+        override fun onLocationChanged(location: Location) {
+            // ok as remote service we use the reply
+        }
+
+    }) { it }
 
     override fun init(): Pair<Model, Que<Msg>> {
         return child.init()
@@ -25,11 +33,7 @@ class GpsElm(override val me: android.app.Service) : ElmMessengerBoundService<Mo
 
     override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
         val (m, c) = child.update(msg, model)
-
-        // send response
-        c.lst.filter{ it.isReply() } . forEach { dispatchReply(it as Msg.Api) }
-        // process rest
-        return ret(m, c)//.lst.filter { it !is Msg.Api })
+        return ret(m, c)
     }
 
     override fun view(model: Model, pre: Model?) {

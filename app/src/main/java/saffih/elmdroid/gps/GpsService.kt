@@ -1,11 +1,12 @@
 package saffih.elmdroid.gps
 
+import android.app.Service
 import android.content.Intent
 
 
 // bound service
 
-class GpsService : android.app.Service() {
+class GpsService : Service() {
     val elm = GpsElm(this)
 
     override fun onBind(intent: android.content.Intent): android.os.IBinder? {

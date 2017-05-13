@@ -35,11 +35,12 @@ data class MService(val mConnection: ServiceConnection? = null,
                     val bound: Boolean = false)
 
 
-abstract class ElmMessengerServiceClient<API>(override val me: Context,
+abstract class ElmMessengerServiceClient<API>(val me: Context,
                                               val javaClassName: Class<*>,
                                               val toApi: (Message) -> API,
-                                              val toMessage: (API) -> Message) :
-        ElmEngine<Model, Msg>(me) {
+                                              val toMessage: (API) -> Message,
+                                              val debug: Boolean = false) :
+        ElmEngine<Model, Msg>() {
     init {
         start()
     }
@@ -59,7 +60,6 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
     open fun onConnected(msg: MService): Unit {}
     open fun onDisconnected(msg: MService): Unit {}
     abstract fun onAPI(msg: API)
-
 
     private val handler = object : Handler() {
         override fun handleMessage(message: Message) {

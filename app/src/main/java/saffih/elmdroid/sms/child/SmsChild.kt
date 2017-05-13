@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.telephony.SmsManager
 import android.telephony.SmsMessage
 import android.widget.Toast
 import saffih.elmdroid.ElmChild
@@ -20,18 +21,20 @@ sealed class Msg {
         data class Received(val sms:SmsMessage) :Sms()
     }
     sealed class Step: Msg(){
-        class Start(): Step()
-        class Done() : Step()
+        class Start : Step()
+        class Done : Step()
     }
     sealed class Api : Msg() {
-        sealed class Request():Api(){
+        sealed class Request : Api() {
             data class SmsSend(val data:MSms) : Request()
         }
-        sealed class Reply():Api(){
+
+        sealed class Reply : Api() {
             data class SmsArrived(val data:SmsMessage) : Reply()
         }
     }
 }
+
 
 
 /**
@@ -68,13 +71,23 @@ data class Model(
 )
 
 data class MState(val i:Int=0)
-data class MSms(val data: SmsMessage? = null)
+data class MSms(val destinationAddress: String, val text: String)
 
-class ElmSmsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : ElmChild<Model, Msg>(me, dispatcher) {
+abstract class ElmSmsChild(val me: Context) : ElmChild<Model, Msg>() {
+    abstract fun onSmsArrived(sms: List<SmsMessage>)
 
-        val smsReceiver = SMSReceiverAdapter(hook={arr:Array<out SmsMessage?> ->
-        arr.filterNotNull().forEach { this@ElmSmsChild.dispatch(
-                Msg.Sms.Received(it))}})
+    fun sendSms(destinationAddress: String, text: String) {
+        val data = MSms(destinationAddress, text)
+        sendSms(data)
+    }
+
+    fun sendSms(data: MSms) {
+        val msg = Msg.Api.Request.SmsSend(data)
+        dispatch(msg)
+    }
+
+    val smsReceiver = SMSReceiverAdapter(
+            hook = { arr: Array<out SmsMessage?> -> onSmsArrived(arr.filterNotNull()) })
 
     fun onResume(){
         smsReceiver.meRegister(me)
@@ -129,13 +142,13 @@ class ElmSmsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
         }
     }
 
+
     private fun update(msg: Msg.Step, model: MState): Pair<MState, Que<Msg>> {
         return when(msg){
-            is Msg.Step.Start ->
-                {
-                    onResume()
-                    ret(model)
-                }
+            is Msg.Step.Start -> {
+                onResume()
+                ret(model)
+            }
             is Msg.Step.Done -> {
                 onPause()
                 ret(model)
@@ -143,10 +156,17 @@ class ElmSmsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
         }
     }
 
+    val smsManager = SmsManager.getDefault()
+
     fun update(msg: Msg.Api, model: MState): Pair<MState, Que<Msg>> {
         return when (msg) {
             is Msg.Api.Request.SmsSend -> {
                 // send sms
+                smsManager.sendTextMessage(
+                        msg.data.destinationAddress,
+                        null,
+                        msg.data.text, null, null)
+                // todo add sent / delivery intents for reporting back the status.
                 ret(model)
             }
             is Msg.Api.Reply.SmsArrived->
@@ -158,7 +178,7 @@ class ElmSmsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
     override fun view(model: Model, pre: Model?) {
         val setup = {}
         checkView(setup, model.state, pre?.state) {
-            toast("stat changed ${model}")
+            toast("state changed ${model}")
         }
     }
 }

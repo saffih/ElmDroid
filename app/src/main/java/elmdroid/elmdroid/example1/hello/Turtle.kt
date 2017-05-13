@@ -53,8 +53,9 @@ sealed class Msg {
     }
 }
 
-class Turtle(override val me: AppCompatActivity, dispatcher: (Que<Msg>) -> Unit) :
-        ElmChild<Model, Msg>(me, dispatcher) {
+
+class Turtle(val me: AppCompatActivity) :
+        ElmChild<Model, Msg>() {
     override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())
     }

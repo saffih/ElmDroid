@@ -12,20 +12,17 @@ import saffih.elmdroid.ElmEngine
  */
 
 
-//interface Messageable {
-//    fun toMessage(): Message
-//}
-
-
-abstract class ElmMessengerBoundService<M, MSG, API:MSG>(override val me: Service?,
-                                                           val toMessage: (API) -> Message,
-                                                           val toApi: (Message) -> API) :
-        ElmEngine<M, MSG>(me)  {
+abstract class ElmMessengerBoundService<M, MSG, API : MSG>(
+        open val me: Service,
+        val toMessage: (API) -> Message,
+        val toApi: (Message) -> API, val debug: Boolean = false) :
+        ElmEngine<M, MSG>() {
 //    init {
 //        start()
 //    }
 
     fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
+        if (!debug) return
         val handler = Handler(Looper.getMainLooper())
         handler.post({ Toast.makeText(me, txt, duration).show() })
     }
@@ -39,8 +36,8 @@ abstract class ElmMessengerBoundService<M, MSG, API:MSG>(override val me: Servic
         val replyTo = last.replyTo
         if (replyTo !== null) {
             replyTo.send(message)
-        } else if (clientMessenger !== null)
-            clientMessenger!!.send(message)
+        } else if (clientMessenger != null)
+            clientMessenger?.send(message)
         else {
             toast("no Messenger to reply ${msg}", duration = Toast.LENGTH_LONG)
         }

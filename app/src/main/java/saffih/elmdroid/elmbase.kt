@@ -16,7 +16,7 @@ import android.support.v4.content.ContextCompat
 /********************************/
 // que Que
 
-data class Que<T>(val lst:List<T>) : Iterable<T>{
+data class Que<T>(val lst: List<T>) : Iterable<T> {
     override fun iterator(): Iterator<T> = lst.iterator()
     fun join(another: List<T>) = Que<T>(lst + another)
     fun join(msg: T?) = if (msg == null) this else Que<T>(lst + msg)
@@ -32,8 +32,8 @@ data class Que<T>(val lst:List<T>) : Iterable<T>{
     operator fun plus(que: Que<T>?) = this.join(que)
     operator fun plus(msg: T) = this.join(msg)
 }
-fun <T>T.que(): Que<T> = Que(lst=listOf(this))
 
+fun <T> T.que(): Que<T> = Que(lst = listOf(this))
 
 
 /**
@@ -46,7 +46,7 @@ fun <T>T.que(): Que<T> = Que(lst=listOf(this))
  */
 
 
-abstract class ElmPattern<M, MSG>(open val me: Context?) {
+abstract class ElmPattern<M, MSG> {
 
     // empty typed lists (immutable).
     val noneQue = Que(listOf<MSG>())
@@ -65,7 +65,7 @@ abstract class ElmPattern<M, MSG>(open val me: Context?) {
     abstract fun init(): Pair<M, Que<MSG>>
 
     // In Elm - update : Msg -> Model -> (Model, Que Msg)
-    abstract fun update(msg: MSG, model: M) : Pair<M, Que<MSG>>
+    abstract fun update(msg: MSG, model: M): Pair<M, Que<MSG>>
 
     // Update helper - for Iterable a. delegate updates b. chain the commands in que
     inline fun <M, SMSG : MSG> update(msg: SMSG,
@@ -78,10 +78,9 @@ abstract class ElmPattern<M, MSG>(open val me: Context?) {
         return mIt to que
     }
 
-    abstract fun  view(model: M, pre: M?)
+    abstract fun view(model: M, pre: M?)
 
-
-    inline fun <TM>checkView(setup:()->Unit, model:TM, pre:TM?, render:()->Unit){
+    inline fun <TM> checkView(setup: () -> Unit, model: TM, pre: TM?, render: () -> Unit) {
         if (model === pre) return
         if (pre === null) {
             setup()
@@ -93,21 +92,91 @@ abstract class ElmPattern<M, MSG>(open val me: Context?) {
         dispatch(msg?.que() ?: noneQue)
     }
 
-    abstract fun dispatch(que: Que<MSG>)
+    fun dispatch(lst: List<MSG>) {
+        dispatch(Que(lst))
+    }
+
+    abstract fun dispatch()
+
+
+    fun dispatch(que: Que<MSG>) {
+        addPending(que)
+        dispatch()
+    }
+
+
+    private var q: Que<MSG> = noneQue
+    protected fun flushed(): Que<MSG> {
+        val res = q
+        q = noneQue
+        return res
+    }
+
+    fun addPending(que: Que<MSG>) {
+        q += que
+    }
+
 }
 
-abstract class ElmParent<M, MSG>(override val me: Context?) : ElmPattern<M, MSG>(me)
+//inline fun <reified T : Activity> Activity.startActivity() {
+//    startActivity(Intent(this, T::class.java))
+//}
 
+//inline fun <reified T :
+//
+//        fun <PM, PMSG,M, MSG> ElmPattern<PM, PMSG>.bind(Child:<reified T:ElmPattern<M, MSG>>)
+// <reified T>
 
-abstract class ElmChild<M, MSG>(override val me: Context?, val dispatcher: (Que<MSG>) -> Unit) :
-        ElmPattern<M, MSG>(me) {
-    override fun dispatch(que: Que<MSG>) {
-        dispatcher(que)
+abstract class ElmChild<M, MSG> : ElmPattern<M, MSG>() {
+    fun takePending(): Que<MSG> {
+        return flushed()
+    }
+
+    internal var dispatcher: (() -> Unit)? = null
+    override fun dispatch() {
+        dispatcher!!()
     }
 }
 
+/**
+ * bind method - providing child parent msd conversion,
+ * and dispatch delegaton to the parent
+ */
+fun <PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>> ElmPattern<PM, PMSG>.bind(
+        child: CHILD,
+        toMsg: (MSG) -> PMSG): ElmBound<PM, PMSG, M, MSG, CHILD> {
+    val res = ElmBound(
+            child,
+            parent = this,
+            toMsg = toMsg)
+    child.dispatcher = { res.dispatch() }
+    return res
+}
 
-abstract class ElmEngine<M, MSG>(override val me: Context?) : ElmParent<M, MSG>(me) {
+/**
+ * Glue with parent delegate all to child by calling bind on child providing  message
+ */
+class ElmBound<PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>>(val child: CHILD,
+                                                           private val parent: ElmPattern<PM, PMSG>,
+                                                           private val toMsg: (MSG) -> PMSG) {
+    fun init(): Pair<M, Que<MSG>> = child.init()
+    fun view(model: M, pre: M?) = child.view(model, pre)
+
+    fun dispatch() {
+        parent.addPending(pending())
+        parent.dispatch()
+    }
+
+    private fun pending() = Que(child.takePending().map { toMsg(it) })
+
+    fun update(msg: MSG, model: M): Pair<M, Que<PMSG>> {
+        val (m, c) = child.update(msg, model)
+        child.addPending(c)
+        return m to pending()
+    }
+}
+
+abstract class ElmEngine<M, MSG> : ElmPattern<M, MSG>() {
 
     // In Elm - sub : subscriptions : Model -> Sub Msg
 
@@ -119,23 +188,24 @@ abstract class ElmEngine<M, MSG>(override val me: Context?) : ElmParent<M, MSG>(
 
     // implementation vars - the latest state reference.
     private var mc: Pair<M, Que<MSG>>? = null
-    fun notStarted()= mc===null
+
+    fun notStarted() = mc === null
     private var model_viewed: M? = null
 
     // expose our immutable myModel
     val myModel: M get () {
-        val model=mc!!.first
+        val model = mc!!.first
         return model
     }
 
-    private fun callView(model:M){
+    private fun callView(model: M) {
         view(model)
         model_viewed = model
     }
 
     // delegate to user update.
     private fun updateWrap(msg: MSG, model: M): Pair<M, Que<MSG>> {
-        val res =  update(msg, model)
+        val res = update(msg, model)
         print("Msg: $msg \n Model: $model \n ===> $res")
         return res
     }
@@ -149,10 +219,10 @@ abstract class ElmEngine<M, MSG>(override val me: Context?) : ElmParent<M, MSG>(
     }
 
     private fun consumeFromQue(mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
-        val (model,cmdQue) = mc
+        val (model, cmdQue) = mc
         val (msg, restQue) = cmdQue.split()
         val mc2 = Pair(model, restQue)
-        val res = if (msg==null) mc2 else cycleMsg(mc2, msg)
+        val res = if (msg == null) mc2 else cycleMsg(mc2, msg)
         return res
     }
 
@@ -160,18 +230,19 @@ abstract class ElmEngine<M, MSG>(override val me: Context?) : ElmParent<M, MSG>(
     // it should be "locked" single inner loop and dispatch at a time.
 
 
-    fun dispatch(lst: List<MSG>) = dispatch(Que(lst))
-    override fun dispatch(que: Que<MSG>) {
+    override fun dispatch() {
+        val que = flushed()
         // todo - fail early. add code for checking the thread identity
         val newMC = mainCompute(que, mc!!)
         val model = newMC.first
-        mc=newMC
+        mc = newMC
         callView(model)
     }
 
     // sanity cnt - assert no concurrent modification.
-    private var cnt=0
-    private fun mainCompute(que: Que<MSG>, mc:Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
+    private var cnt = 0
+
+    private fun mainCompute(que: Que<MSG>, mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
         if (cnt != 0) throw RuntimeException("concurrent innerloop! dispatch was called instead of postDispatch")
         cnt += 1
         val (model, que0) = mc
@@ -201,7 +272,7 @@ abstract class ElmEngine<M, MSG>(override val me: Context?) : ElmParent<M, MSG>(
      * If overriden - must be called to super
      */
     fun start(): ElmEngine<M, MSG> {
-        assert(mc==null) { "Check if started more then once." }
+        assert(mc == null) { "Check if started more then once." }
         mc = init()
         dispatch()
         return this
@@ -211,7 +282,7 @@ abstract class ElmEngine<M, MSG>(override val me: Context?) : ElmParent<M, MSG>(
 /**
  * For Activities having main Handler and dispatch.
  */
-abstract class ElmBase<M, MSG>(override val me: Context?) : ElmEngine<M, MSG>(me) {
+abstract class ElmBase<M, MSG>(open val me: Context?) : ElmEngine<M, MSG>() {
 
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
@@ -219,7 +290,7 @@ abstract class ElmBase<M, MSG>(override val me: Context?) : ElmEngine<M, MSG>(me
 
     // cross thread communication
     fun postDispatch(msg: MSG) {
-        mainHandler.post({dispatch(msg)})
+        mainHandler.post({ dispatch(msg) })
     }
 
     open fun onPause() {
@@ -233,6 +304,7 @@ abstract class ElmBase<M, MSG>(override val me: Context?) : ElmEngine<M, MSG>(me
     open fun onStart() {
 
     }
+
     open fun onStop() {
 
     }

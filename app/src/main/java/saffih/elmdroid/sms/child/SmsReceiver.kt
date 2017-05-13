@@ -6,6 +6,7 @@
 
 package saffih.elmdroid.sms.child
 
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -13,6 +14,7 @@ import android.content.IntentFilter
 import android.os.Build
 import android.provider.Telephony
 import android.telephony.SmsMessage
+import saffih.elmdroid.activityCheckForPermission
 
 
 open class SMSReceiverAdapter(val hook: (Array<out SmsMessage?>) -> Unit)  : BroadcastReceiver() {
@@ -20,8 +22,8 @@ open class SMSReceiverAdapter(val hook: (Array<out SmsMessage?>) -> Unit)  : Bro
     fun meRegister(me: Context ){
         val filter = IntentFilter()
 //        filter.priority=18
-        filter.addAction("android.provider.Telephony.SMS_RECEIVED");
-        me.registerReceiver(this, filter);
+        filter.addAction("android.provider.Telephony.SMS_RECEIVED")
+        me.registerReceiver(this, filter)
     }
 
     fun meUnregister(me: Context ){
@@ -47,6 +49,16 @@ open class SMSReceiverAdapter(val hook: (Array<out SmsMessage?>) -> Unit)  : Bro
             smsMessages[n] = SmsMessage.createFromPdu(rawPduData[n] as ByteArray)
         }
         return smsMessages.filterNotNull().toTypedArray()
+    }
+
+
+    companion object {
+        fun checkPermission(me: Activity) {
+            activityCheckForPermission(me, "android.permission.RECEIVE_SMS", 1)
+            activityCheckForPermission(me, "android.permission.READ_SMS", 1)
+//        activityCheckForPermission(this, "android.permission.SEND_SMS", 1)
+
+        }
     }
 }
 

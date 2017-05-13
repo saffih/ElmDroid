@@ -31,7 +31,7 @@ sealed class Msg {
         data class LocationChanged(val location: Location) : Response()
     }
     sealed class Step:Msg(){
-        class Start():Step()
+        class Start : Step()
         class Done(val location: Location) :Step()
     }
     sealed class Api : Msg() {
@@ -88,7 +88,7 @@ data class Model(
 data class MState(val listeners: List<LocationAdapter> = listOf<LocationAdapter>())
 
 
-class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : ElmChild<Model, Msg>(me, dispatcher) {
+abstract class ElmGpsChild(val me: Context) : ElmChild<Model, Msg>() {
 
 
     override fun init(): Pair<Model, Que<Msg>> {
@@ -115,7 +115,6 @@ class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
                 return when (msg) {
                     is Msg.Response.Disabled -> {
                         toast("disabled ${msg}")
-
                         ret(model.copy(forced = true))
                     }
                     is Msg.Response.Enabled -> {
@@ -154,11 +153,21 @@ class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
                     ret(model)
             is Msg.Step.Done -> {
                 model.listeners.forEach { it.unregister() }
-                ret(model.copy(listeners = listOf()), Msg.Api.Reply.NotifyLocation(msg.location))
+                onLocationChanged(msg.location)
+                val replyMsg = Msg.Api.Reply.NotifyLocation(msg.location)
+                onReplyNotifyLocation(replyMsg)
+                ret(model.copy(listeners = listOf()), replyMsg)
 
             }
         }
     }
+
+    // Shugaring
+    fun RequestLocation() = Msg.Api.Request.Location()
+
+
+    abstract fun onReplyNotifyLocation(replyMsg: Msg.Api.Reply.NotifyLocation)
+    abstract fun onLocationChanged(location: Location)
 
     fun update(msg: Msg.Api, model: MState): Pair<MState, Que<Msg>> {
         return when (msg) {
@@ -177,28 +186,29 @@ class ElmGpsChild(override val me: Context, dispatcher: (Que<Msg>) -> Unit) : El
     }
 
 
-}
-
-fun ElmGpsChild.toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
-    val handler = Handler(Looper.getMainLooper())
-    handler.post({ Toast.makeText(me, txt, duration).show() })
-}
+    fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
+        val handler = Handler(Looper.getMainLooper())
+        handler.post({ Toast.makeText(me, txt, duration).show() })
+    }
 
 
-fun ElmGpsChild.startListenToGps(): List<LocationAdapter> {
-    val lm: LocationManager = me.getSystemService(Context.LOCATION_SERVICE)
-            as LocationManager
+    fun startListenToGps(): List<LocationAdapter> {
+        val lm: LocationManager = me.getSystemService(Context.LOCATION_SERVICE)
+                as LocationManager
 
-    val allListeners = listOf(
-            LocationProviderDisabledListener(lm) { dispatch(Msg.Response.Disabled(it)) },
-            LocationProviderEnabledListener(lm) { dispatch(Msg.Response.Enabled(it)) },
-            LocationStatusChangedListener(lm) { provider, status, extras ->
-                dispatch(Msg.Response.StatusChanged(provider, status, extras))
-            },
-            LocationChangedListener(lm) { dispatch(Msg.Response.LocationChanged(it)) })
+        val allListeners = listOf(
+                LocationProviderDisabledListener(lm) { dispatch(Msg.Response.Disabled(it)) },
+                LocationProviderEnabledListener(lm) { dispatch(Msg.Response.Enabled(it)) },
+                LocationStatusChangedListener(lm) { provider, status, extras ->
+                    dispatch(Msg.Response.StatusChanged(provider, status, extras))
+                },
+                LocationChangedListener(lm) { dispatch(Msg.Response.LocationChanged(it)) })
 
-    allListeners.forEach { it.registerAt() }
-    return allListeners
+        allListeners.forEach { it.registerAt() }
+        return allListeners
+    }
+
+
 }
 
 open class LocationAdapter(val locationManager: LocationManager) : LocationListener {
