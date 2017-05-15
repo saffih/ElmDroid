@@ -25,6 +25,12 @@ sealed class Msg {
         class Done : Step()
     }
     sealed class Api : Msg() {
+        companion object {
+            fun mSms(destinationAddress: String, text: String) = MSms(destinationAddress, text)
+            fun sms(data: MSms) = Request.SmsSend(data)
+            fun sms(destinationAddress: String, text: String) = sms(mSms(destinationAddress, text))
+        }
+
         sealed class Request : Api() {
             data class SmsSend(val data:MSms) : Request()
         }
@@ -76,31 +82,38 @@ data class MSms(val destinationAddress: String, val text: String)
 abstract class ElmSmsChild(val me: Context) : ElmChild<Model, Msg>() {
     abstract fun onSmsArrived(sms: List<SmsMessage>)
 
-    fun sendSms(destinationAddress: String, text: String) {
-        val data = MSms(destinationAddress, text)
-        sendSms(data)
-    }
-
-    fun sendSms(data: MSms) {
-        val msg = Msg.Api.Request.SmsSend(data)
-        dispatch(msg)
-    }
-
     val smsReceiver = SMSReceiverAdapter(
             hook = { arr: Array<out SmsMessage?> -> onSmsArrived(arr.filterNotNull()) })
 
+    //    for services
+    override fun onCreate() {
+        super.onCreate()
+        register()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregister()
+    }
+
+    // for activities
     fun onResume(){
-        smsReceiver.meRegister(me)
-//        val filter = IntentFilter()
-//        filter.addAction("android.provider.Telephony.SMS_RECEIVED");
-//        me.registerReceiver(smsReceiver, filter);
+        register()
     }
 
+    // for activity
     fun onPause(){
-        smsReceiver.meUnregister(me)
-//        me.unregisterReceiver(smsReceiver)
+        unregister()
     }
 
+
+    private fun register() {
+        smsReceiver.meRegister(me)
+    }
+
+    private fun unregister() {
+        smsReceiver.meUnregister(me)
+    }
 
     override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())

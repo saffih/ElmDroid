@@ -9,12 +9,21 @@ import android.location.Location
 import saffih.elmdroid.Que
 import saffih.elmdroid.bind
 import saffih.elmdroid.gps.child.*
-import saffih.elmdroid.service.ElmMessengerBoundService
+import saffih.elmdroid.service.ElmMessengerService
 
 
-class GpsElm(me: Service) : ElmMessengerBoundService<Model, Msg, Msg.Api>(me,
+class GpsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         toApi = { it.toApi() },
         toMessage = { it.toMessage() }) {
+    override fun onCreate() {
+        super.onCreate()
+        child.onCreate()
+    }
+
+    override fun onDestroy() {
+        child.onDestroy()
+        super.onDestroy()
+    }
 
     private val child = bind(object : ElmGpsChild(me) {
         override fun onReplyNotifyLocation(replyMsg: Msg.Api.Reply.NotifyLocation) {
@@ -24,7 +33,6 @@ class GpsElm(me: Service) : ElmMessengerBoundService<Model, Msg, Msg.Api>(me,
         override fun onLocationChanged(location: Location) {
             // ok as remote service we use the reply
         }
-
     }) { it }
 
     override fun init(): Pair<Model, Que<Msg>> {

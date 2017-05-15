@@ -6,6 +6,7 @@ package saffih.elmdroid.gps.child
  */
 
 
+import android.app.Activity
 import android.content.Context
 import android.location.Location
 import android.location.LocationListener
@@ -16,6 +17,7 @@ import android.os.Message
 import android.widget.Toast
 import saffih.elmdroid.ElmChild
 import saffih.elmdroid.Que
+import saffih.elmdroid.activityCheckForPermission
 
 
 sealed class Msg {
@@ -35,6 +37,9 @@ sealed class Msg {
         class Done(val location: Location) :Step()
     }
     sealed class Api : Msg() {
+        companion object {
+            fun locate() = Request.Location()
+        }
         sealed class Request : Api() {
               class Location : Request()
         }
@@ -89,7 +94,18 @@ data class MState(val listeners: List<LocationAdapter> = listOf<LocationAdapter>
 
 
 abstract class ElmGpsChild(val me: Context) : ElmChild<Model, Msg>() {
+    override fun onCreate() {
+        super.onCreate()
+    }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        unregister()
+    }
+
+    fun unregister() {
+        LocationAdapter.unregisterAll()
+    }
 
     override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())
@@ -195,7 +211,6 @@ abstract class ElmGpsChild(val me: Context) : ElmChild<Model, Msg>() {
     fun startListenToGps(): List<LocationAdapter> {
         val lm: LocationManager = me.getSystemService(Context.LOCATION_SERVICE)
                 as LocationManager
-
         val allListeners = listOf(
                 LocationProviderDisabledListener(lm) { dispatch(Msg.Response.Disabled(it)) },
                 LocationProviderEnabledListener(lm) { dispatch(Msg.Response.Enabled(it)) },
@@ -212,6 +227,7 @@ abstract class ElmGpsChild(val me: Context) : ElmChild<Model, Msg>() {
 }
 
 open class LocationAdapter(val locationManager: LocationManager) : LocationListener {
+
     override fun onLocationChanged(location: Location?) {
     }
 
@@ -229,6 +245,7 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
         val minDistance: Float = 10.toFloat()
         locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER, minTime, minDistance, this)
+        track.add(this)
     }
 
     operator fun invoke() {
@@ -237,6 +254,17 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
 
     fun unregister() {
         locationManager.removeUpdates(this)
+        track.remove(this)
+    }
+
+
+    companion object {
+        fun checkPermission(me: Activity) {
+            activityCheckForPermission(me, "android.permission.RECEIVE_SMS", 1)
+        }
+
+        private val track = mutableSetOf<LocationAdapter>()
+        fun unregisterAll() = track.asIterable().forEach { it.unregister() }
     }
 }
 

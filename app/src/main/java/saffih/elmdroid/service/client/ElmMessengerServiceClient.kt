@@ -14,8 +14,9 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Message
 import android.os.Messenger
-import saffih.elmdroid.ElmEngine
+import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
+import saffih.elmdroid.service.ElmMessengerService.Companion.startService
 
 
 sealed class Msg {
@@ -35,15 +36,12 @@ data class MService(val mConnection: ServiceConnection? = null,
                     val bound: Boolean = false)
 
 
-abstract class ElmMessengerServiceClient<API>(val me: Context,
+abstract class ElmMessengerServiceClient<API>(override val me: Context,
                                               val javaClassName: Class<*>,
                                               val toApi: (Message) -> API,
                                               val toMessage: (API) -> Message,
                                               val debug: Boolean = false) :
-        ElmEngine<Model, Msg>() {
-    init {
-        start()
-    }
+        ElmBase<Model, Msg>(me) {
 
     override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())
@@ -137,9 +135,21 @@ abstract class ElmMessengerServiceClient<API>(val me: Context,
 
     }
 
+    override fun onCreate() {
+        onCreateBound()
+    }
 
-    fun onStart() {
-//        start()
+    fun onCreateUnbound() {
+        super.onCreate()
+        startUnbound()
+    }
+
+    fun onCreateBound() {
+        super.onCreate()
+        startBound()
+    }
+
+    private fun startBound() {
         // Bind to the service
         val startService = Intent(me, javaClassName)
         startService.putExtra("MESSENGER", replyMessenger)
@@ -148,10 +158,15 @@ abstract class ElmMessengerServiceClient<API>(val me: Context,
                 Context.BIND_AUTO_CREATE)
     }
 
-    fun onStop() {
+    private fun startUnbound() {
+        startService(me, javaClassName, replyMessenger)
+    }
+
+    override fun onDestroy() {
         // Unbind from the service
         if (myModel.service.bound)
             me.unbindService(myModel.service.mConnection)
+        super.onDestroy()
     }
 
 }

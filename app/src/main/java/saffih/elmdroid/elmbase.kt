@@ -25,7 +25,7 @@ data class Que<T>(val lst: List<T>) : Iterable<T> {
     fun split() = Pair(
             // Msg part
             if (lst.isEmpty()) null else lst.first(),
-            // Que msg part. "batch" list
+            // Que smsg part. "batch" list
             if (lst.isEmpty()) this else Que(lst.drop(1)))
 
     operator fun plus(another: List<T>) = this.join(another)
@@ -46,7 +46,7 @@ fun <T> T.que(): Que<T> = Que(lst = listOf(this))
  */
 
 
-abstract class ElmPattern<M, MSG> {
+abstract class MsgQue<MSG> {
 
     // empty typed lists (immutable).
     val noneQue = Que(listOf<MSG>())
@@ -60,6 +60,39 @@ abstract class ElmPattern<M, MSG> {
     fun <T> ret(m: T) = m to noneQue
 
 
+    fun dispatch(msg: MSG? = null) {
+        dispatch(msg?.que() ?: noneQue)
+    }
+
+    fun dispatch(lst: List<MSG>) {
+        dispatch(Que(lst))
+    }
+
+    abstract fun dispatch()
+
+    fun dispatch(que: Que<MSG>) {
+        addPending(que)
+        dispatch()
+    }
+
+    private var q: Que<MSG> = noneQue
+    fun flushed(): Que<MSG> {
+        val res = q
+        q = noneQue
+        return res
+    }
+
+    fun addPending(que: Que<MSG>) {
+        q += que
+    }
+
+    fun addPending(msg: MSG) {
+        q += msg
+    }
+
+}
+
+abstract class ElmPattern<M, MSG> : MsgQue<MSG>() {
     // Mandatory methods
     // Elm Init - init : (Model, Que Msg)
     abstract fun init(): Pair<M, Que<MSG>>
@@ -88,34 +121,8 @@ abstract class ElmPattern<M, MSG> {
         render()
     }
 
-    fun dispatch(msg: MSG? = null) {
-        dispatch(msg?.que() ?: noneQue)
-    }
-
-    fun dispatch(lst: List<MSG>) {
-        dispatch(Que(lst))
-    }
-
-    abstract fun dispatch()
-
-
-    fun dispatch(que: Que<MSG>) {
-        addPending(que)
-        dispatch()
-    }
-
-
-    private var q: Que<MSG> = noneQue
-    protected fun flushed(): Que<MSG> {
-        val res = q
-        q = noneQue
-        return res
-    }
-
-    fun addPending(que: Que<MSG>) {
-        q += que
-    }
-
+    abstract fun onCreate()
+    abstract fun onDestroy()
 }
 
 //inline fun <reified T : Activity> Activity.startActivity() {
@@ -136,10 +143,30 @@ abstract class ElmChild<M, MSG> : ElmPattern<M, MSG>() {
     override fun dispatch() {
         dispatcher!!()
     }
+
+    override fun onCreate() {
+        assert(dispatcher != null)
+        assert(takePending().lst.isEmpty())
+    }
+
+    override fun onDestroy() {
+        assert(takePending().lst.isEmpty())
+    }
+
 }
 
+class ElmChildAdapter<M, MSG>(val delegate: ElmPattern<M, MSG>) : ElmChild<M, MSG>() {
+    override fun onCreate() = delegate.onCreate()
+    override fun onDestroy() = delegate.onDestroy()
+
+    override fun init() = delegate.init()
+    override fun update(msg: MSG, model: M) = delegate.update(msg, model)
+    override fun view(model: M, pre: M?) = delegate.view(model, pre)
+}
+
+
 /**
- * bind method - providing child parent msd conversion,
+ * bind method - providing impl parent msd conversion,
  * and dispatch delegaton to the parent
  */
 fun <PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>> ElmPattern<PM, PMSG>.bind(
@@ -153,27 +180,35 @@ fun <PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>> ElmPattern<PM, PMSG>.bind(
     return res
 }
 
+
 /**
- * Glue with parent delegate all to child by calling bind on child providing  message
+ * Glue with parent delegate all to impl by calling bind on impl providing  message
  */
-class ElmBound<PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>>(val child: CHILD,
+class ElmBound<PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>>(val impl: CHILD,
                                                            private val parent: ElmPattern<PM, PMSG>,
                                                            private val toMsg: (MSG) -> PMSG) {
-    fun init(): Pair<M, Que<MSG>> = child.init()
-    fun view(model: M, pre: M?) = child.view(model, pre)
+    fun init(): Pair<M, Que<MSG>> = impl.init()
+    fun view(model: M, pre: M?) = impl.view(model, pre)
+
+    fun addPending() {
+        parent.addPending(pending())
+    }
 
     fun dispatch() {
-        parent.addPending(pending())
+        addPending()
         parent.dispatch()
     }
 
-    private fun pending() = Que(child.takePending().map { toMsg(it) })
+    fun pending() = Que(impl.takePending().map { toMsg(it) })
 
     fun update(msg: MSG, model: M): Pair<M, Que<PMSG>> {
-        val (m, c) = child.update(msg, model)
-        child.addPending(c)
+        val (m, c) = impl.update(msg, model)
+        impl.addPending(c)
         return m to pending()
     }
+
+    fun onCreate() = impl.onCreate()
+    fun onDestroy() = impl.onDestroy()
 }
 
 abstract class ElmEngine<M, MSG> : ElmPattern<M, MSG>() {
@@ -190,6 +225,14 @@ abstract class ElmEngine<M, MSG> : ElmPattern<M, MSG>() {
     private var mc: Pair<M, Que<MSG>>? = null
 
     fun notStarted() = mc === null
+    override fun onCreate() {
+        if (notStarted())
+            start()
+    }
+
+    override fun onDestroy() {
+        mc = null
+    }
     private var model_viewed: M? = null
 
     // expose our immutable myModel
@@ -210,7 +253,7 @@ abstract class ElmEngine<M, MSG> : ElmPattern<M, MSG>() {
         return res
     }
 
-    // act with msg
+    // act with smsg
     private fun cycleMsg(mc: Pair<M, Que<MSG>>, msg: MSG): Pair<M, Que<MSG>> {
         val (model, cmdQue) = mc
         val (updateModel, newQue) = updateWrap(msg, model)
@@ -250,7 +293,7 @@ abstract class ElmEngine<M, MSG> : ElmPattern<M, MSG>() {
         // consume commands
         val act = block@ {
             for (i in 0..1000) {
-                val que2 = mc2.second
+                val que2 = mc2.second //+this.flushed()
                 if (que2.lst.isEmpty()) {
                     return@block false
                 }
@@ -293,21 +336,7 @@ abstract class ElmBase<M, MSG>(open val me: Context?) : ElmEngine<M, MSG>() {
         mainHandler.post({ dispatch(msg) })
     }
 
-    open fun onPause() {
 
-    }
-
-
-    open fun onResume() {
-    }
-
-    open fun onStart() {
-
-    }
-
-    open fun onStop() {
-
-    }
 }
 
 

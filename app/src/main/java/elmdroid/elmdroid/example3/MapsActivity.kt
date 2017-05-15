@@ -31,12 +31,12 @@ class MapsActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        app.onStart()
+        app.onCreate()
     }
 
     override fun onStop() {
         super.onStop()
-        app.onStop()
+        app.onDestroy()
     }
 }
 
@@ -77,24 +77,27 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
 
         override fun onAPI(msg: GpsMsgApi) {
             when (msg) {
-                is saffih.elmdroid.gps.child.Msg.Api.Reply.NotifyLocation -> this@ElmApp.postDispatch(Msg.Activity.GotLocation(msg.location))
+                is saffih.elmdroid.gps.child.Msg.Api.Reply.NotifyLocation ->
+                    postDispatch(Msg.Activity.GotLocation(msg.location))
             }
         }
 
         override fun onConnected(msg: MService) {
-            this@ElmApp.postDispatch(Msg.Activity.FirstRequest())
+            postDispatch(Msg.Activity.FirstRequest())
         }
     }
 
     val gps = GpsElmRemoteServiceClient(me)
-    override fun onStart() {
+    override fun onCreate() {
+        super.onCreate()
         // Bind to the service
-        gps.onStart()
+        gps.onCreate()
     }
 
-    override fun onStop() {
+    override fun onDestroy() {
         // Unbind from the service
-        gps.onStop()
+        gps.onDestroy()
+        super.onDestroy()
     }
 
     override fun init() = ret(Model(), Msg.Init)

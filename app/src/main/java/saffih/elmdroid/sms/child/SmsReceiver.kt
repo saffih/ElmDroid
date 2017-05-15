@@ -56,7 +56,7 @@ open class SMSReceiverAdapter(val hook: (Array<out SmsMessage?>) -> Unit)  : Bro
         fun checkPermission(me: Activity) {
             activityCheckForPermission(me, "android.permission.RECEIVE_SMS", 1)
             activityCheckForPermission(me, "android.permission.READ_SMS", 1)
-//        activityCheckForPermission(this, "android.permission.SEND_SMS", 1)
+            activityCheckForPermission(me, "android.permission.SEND_SMS", 1)
 
         }
     }

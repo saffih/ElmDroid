@@ -113,7 +113,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
     }
 
     /**
-     * Activity child setup the layout view. if has changes delegate render to child views
+     * Activity impl setup the layout view. if has changes delegate render to impl views
      */
     private fun view(model: MActivity, pre: MActivity?) {
         val setup = { me.setContentView(R.layout.activity_helloworld) }
@@ -135,18 +135,13 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        sms.child.onResume()
+    fun onPause() {
+        sms.impl.onResume()
     }
 
-    override fun onStart() {
-        super.onStart()
-    }
 
-    override fun onResume() {
-        super.onResume()
-        sms.child.onResume()
+    fun onResume() {
+        sms.impl.onResume()
     }
 }
 
@@ -175,13 +170,14 @@ class ExampleHelloWorldActivity : AppCompatActivity() {
     }
 
     //
-//    override fun onDestroy() {
-//        super.onDestroy()
-//    }
-//
+    override fun onDestroy() {
+        app.onDestroy()
+        super.onDestroy()
+    }
+
     override fun onStart() {
         super.onStart()
-        app.onStart()
+        app.onCreate()
     }
 //
 //    override fun onResumeFragments() {

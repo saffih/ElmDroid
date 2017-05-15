@@ -1,10 +1,13 @@
 package saffih.elmdroid.service
 
+import android.app.ActivityManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.os.*
 import android.widget.Toast
-import saffih.elmdroid.ElmEngine
+import saffih.elmdroid.ElmBase
+
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -12,14 +15,22 @@ import saffih.elmdroid.ElmEngine
  */
 
 
-abstract class ElmMessengerBoundService<M, MSG, API : MSG>(
-        open val me: Service,
+fun Context.isServiceRunning(serviceClass: Class<*>): Boolean {
+    val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+        if (serviceClass.name == service.service.className) {
+            return true
+        }
+    }
+    return false
+}
+
+
+abstract class ElmMessengerService<M, MSG, API : MSG>(
+        override val me: Service,
         val toMessage: (API) -> Message,
         val toApi: (Message) -> API, val debug: Boolean = false) :
-        ElmEngine<M, MSG>() {
-//    init {
-//        start()
-//    }
+        ElmBase<M, MSG>(me) {
 
     fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
         if (!debug) return
@@ -68,18 +79,44 @@ abstract class ElmMessengerBoundService<M, MSG, API : MSG>(
      * for sending messages to the service.
      */
     fun onBind(intent: Intent): IBinder {
-        val extras = intent.extras
-        clientMessenger = extras?.get("MESSENGER") as Messenger
-        if (notStarted()) {
-            start()
-        }
+        setMessenger(intent)
         return mMessenger.binder
     }
 
-    fun onCreate() { // for long lived services
-        start()
+
+    fun onRebind(intent: Intent) {
+        setMessenger(intent)
+
+        // issue refresh...
     }
 
 
-    fun onDestroy() {}
+    fun onUnbind(intent: Intent): Boolean {
+        clientMessenger = null
+        return true
+    }
+
+    // for unbound service
+    fun onStartCommand(intent: Intent, flags: Int, startId: Int) {
+        setMessenger(intent)
+    }
+
+    private fun setMessenger(intent: Intent): Messenger? {
+        val extras = intent.extras
+        clientMessenger = extras?.get("MESSENGER") as Messenger
+        return clientMessenger
+    }
+
+    companion object {
+        fun startService(context: Context, serviceClass: Class<*>, messenger: Messenger? = null) {
+            if (!context.isServiceRunning(serviceClass)) {
+                val startIntent = Intent(context, serviceClass)
+                if (messenger != null) {
+                    startIntent.putExtra("MESSENGER", messenger)
+                }
+                context.startService(startIntent)
+            }
+        }
+    }
 }
+
