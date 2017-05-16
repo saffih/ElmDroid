@@ -18,7 +18,7 @@ class FiboElmBaseTest {
     @Throws(Exception::class)
     fun testFibo() {
         val app = App()
-        app.start()
+        app.onCreate()
         assertEquals(app.last(), 1)
         app.dispatch(msg = Msg.Next())
         assertEquals(app.last(), 1)

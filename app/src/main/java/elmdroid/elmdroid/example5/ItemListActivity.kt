@@ -27,7 +27,7 @@ class ItemListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         itemListActivity=this
 
-        app.start()
+        app.onCreate()
     }
 
     companion object {

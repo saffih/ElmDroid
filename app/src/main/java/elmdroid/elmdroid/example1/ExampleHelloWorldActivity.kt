@@ -54,7 +54,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
         }
 
         fun onSmsArrived(sms: SmsMessage) =
-                dispatch(Msg.Activity.Greeted(Greeting(sms.messageBody)))
+                postDispatch(Msg.Activity.Greeted(Greeting(sms.messageBody)))
     }) { Msg.Activity.Sms(it) }
 
     val turtle = bind(Turtle(me)) { Msg.Activity.Turtle(it) }
@@ -120,7 +120,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
 
         checkView(setup, model, pre) {
             view(model.greeting, pre?.greeting)
-            turtle.view(model.turtle, pre?.turtle)
+            turtle.impl.view(model.turtle, pre?.turtle)
         }
     }
 
@@ -136,12 +136,12 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
     }
 
     fun onPause() {
-        sms.impl.onResume()
+        sms.impl.onDestroy()
     }
 
 
     fun onResume() {
-        sms.impl.onResume()
+        sms.impl.onCreate()
     }
 }
 
@@ -153,7 +153,7 @@ class ExampleHelloWorldActivity : AppCompatActivity() {
         activityCheckForPermission(this, "android.permission.READ_SMS", 1)
 //        activityCheckForPermission(this, "android.permission.SEND_SMS", 1)
 
-        app.start()
+        app.onCreate()
     }
 
     override fun onResume() {

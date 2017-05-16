@@ -11,7 +11,7 @@ class DrawerExample : AppCompatActivity() {
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start()
+        app.onCreate()
     }
 
 

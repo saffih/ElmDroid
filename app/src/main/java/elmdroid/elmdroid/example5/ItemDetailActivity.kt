@@ -17,7 +17,7 @@ class ItemDetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start()
+        app.onCreate()
     }
 
     //    override fun onOptionsItemSelected(item: MenuItem): Boolean {

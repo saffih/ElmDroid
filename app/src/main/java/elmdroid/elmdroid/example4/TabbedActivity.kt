@@ -26,7 +26,7 @@ class TabbedActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start()
+        app.onCreate()
 
     }
 

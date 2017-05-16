@@ -103,16 +103,24 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
 
     private fun setMessenger(intent: Intent): Messenger? {
         val extras = intent.extras
-        clientMessenger = extras?.get("MESSENGER") as Messenger
+        clientMessenger = extras?.get("MESSENGER") as Messenger?
+        val dbg = extras?.get("PAYLOAD") as Message?
+        if (dbg != null) {
+            handler.handleMessage(dbg)
+        }
         return clientMessenger
     }
 
     companion object {
-        fun startService(context: Context, serviceClass: Class<*>, messenger: Messenger? = null) {
-            if (!context.isServiceRunning(serviceClass)) {
+        fun startService(context: Context, serviceClass: Class<*>, messenger: Messenger? = null,
+                         payload: Message? = null) {
+            if (!context.isServiceRunning(serviceClass) || (messenger != null) || (payload != null)) {
                 val startIntent = Intent(context, serviceClass)
                 if (messenger != null) {
                     startIntent.putExtra("MESSENGER", messenger)
+                }
+                if (payload != null) {
+                    startIntent.putExtra("PAYLOAD", payload)
                 }
                 context.startService(startIntent)
             }

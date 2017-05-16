@@ -11,7 +11,7 @@ class ShowCase : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start()
+        app.onCreate()
     }
 
 

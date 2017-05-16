@@ -1,7 +1,6 @@
 package elmdroid.elmdroid.example3
 
 import android.Manifest
-import android.content.Context
 import android.location.Location
 import android.os.Bundle
 import android.support.v4.app.FragmentActivity
@@ -12,9 +11,7 @@ import elmdroid.elmdroid.R
 import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
 import saffih.elmdroid.activityCheckForPermission
-import saffih.elmdroid.gps.GpsService
-import saffih.elmdroid.gps.child.*
-import saffih.elmdroid.service.client.ElmMessengerServiceClient
+import saffih.elmdroid.gps.GpsElmServiceClient
 import saffih.elmdroid.service.client.MService
 import saffih.elmdroid.gps.child.Msg as GpsMsg
 import saffih.elmdroid.gps.child.Msg.Api as GpsMsgApi
@@ -26,7 +23,7 @@ class MapsActivity : FragmentActivity() {
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.start()
+        app.onCreate()
     }
 
     override fun onStart() {
@@ -70,11 +67,7 @@ data class MMap(val googleMap: GoogleMap? = null,
                 val camera: CameraUpdate? = null)
 
 class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMapReadyCallback {
-    inner class GpsElmRemoteServiceClient(me: Context) :
-            ElmMessengerServiceClient<GpsMsgApi>(me, javaClassName = GpsService::class.java,
-                    toApi = { it.toApi() },
-                    toMessage = { it.toMessage() }) {
-
+    val gps = object : GpsElmServiceClient(me) {
         override fun onAPI(msg: GpsMsgApi) {
             when (msg) {
                 is saffih.elmdroid.gps.child.Msg.Api.Reply.NotifyLocation ->
@@ -87,7 +80,6 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         }
     }
 
-    val gps = GpsElmRemoteServiceClient(me)
     override fun onCreate() {
         super.onCreate()
         // Bind to the service

@@ -24,6 +24,7 @@ sealed class Msg {
     sealed class Service : Msg() {
         class Connected(val className: ComponentName, val service: IBinder) : Service()
         class Disconnected(val className: ComponentName) : Service()
+        class Pending(val pendingRequest: Request) : Service()
     }
 
     class Request(val payload: Message) : Msg()
@@ -33,7 +34,8 @@ data class Model(val service: MService = MService())
 
 data class MService(val mConnection: ServiceConnection? = null,
                     val messenger: Messenger? = null,
-                    val bound: Boolean = false)
+                    val bound: Boolean = false,
+                    val pending: Que<Msg> = Que())
 
 
 abstract class ElmMessengerServiceClient<API>(override val me: Context,
@@ -48,11 +50,15 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
     }
 
     fun request(payload: API) {
-        request(toMessage(payload))
-    }
-
-    private fun request(payload: Message) {
-        dispatch(Msg.Request(payload))
+        val toSend = Msg.Request(toMessage(payload))
+        val service = myModel.service
+        if (!service.bound) {
+            addPending(Msg.Service.Pending(toSend))
+            init()
+            startBound()
+            return
+        }
+        dispatch(toSend)
     }
 
     open fun onConnected(msg: MService): Unit {}
@@ -90,8 +96,13 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
 
     private fun update(msg: Msg.Service, model: MService): Pair<MService, Que<Msg>> {
         return when (msg) {
+            is Msg.Service.Pending -> {
+                ret(model.copy(pending = model.pending + msg.pendingRequest))
+            }
             is Msg.Service.Connected -> {
-                ret(model.copy(messenger = Messenger(msg.service), bound = true))
+                val que = model.pending
+                ret(model.copy(messenger = Messenger(msg.service), bound = true,
+                        pending = Que()), que)
             }
             is Msg.Service.Disconnected -> {
                 ret(model.copy(messenger = null, bound = false))
@@ -108,13 +119,13 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
                 // interact with the service.  We are communicating with the
                 // service using a Messenger, so here we get a client-side
                 // representation of that from the raw IBinder object.
-                dispatch(Msg.Service.Connected(className, service))
+                postDispatch(Msg.Service.Connected(className, service))
             }
 
             override fun onServiceDisconnected(className: ComponentName) {
                 // This is called when the connection with the service has been
                 // unexpectedly disconnected -- that is, its process crashed.
-                dispatch(Msg.Service.Disconnected(className))
+                postDispatch(Msg.Service.Disconnected(className))
             }
         }))
     }
@@ -160,6 +171,10 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
 
     private fun startUnbound() {
         startService(me, javaClassName, replyMessenger)
+    }
+
+    protected fun sendPayload(payload: Message) {
+        startService(me, javaClassName, replyMessenger, payload)
     }
 
     override fun onDestroy() {
