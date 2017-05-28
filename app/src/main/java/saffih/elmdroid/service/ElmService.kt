@@ -38,6 +38,9 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
         handler.post({ Toast.makeText(me, txt, duration).show() })
     }
 
+    override fun view(model: M, pre: M?) {
+//        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
     private var lastincomingMessage: Message? = null
 
@@ -78,43 +81,45 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
      * When binding to the service, we return an interface to our messenger
      * for sending messages to the service.
      */
-    fun onBind(intent: Intent): IBinder {
+    fun onBind(intent: Intent?): IBinder {
         setMessenger(intent)
         return mMessenger.binder
     }
 
 
-    fun onRebind(intent: Intent) {
+    fun onRebind(intent: Intent?) {
         setMessenger(intent)
-
-        // issue refresh...
     }
 
 
-    fun onUnbind(intent: Intent): Boolean {
+    fun onUnbind(intent: Intent?): Boolean {
         clientMessenger = null
         return true
     }
 
     // for unbound service
-    fun onStartCommand(intent: Intent, flags: Int, startId: Int) {
+    fun onStartCommand(intent: Intent?, flags: Int, startId: Int) {
         setMessenger(intent)
+        val extras = intent?.extras
+        val dbg = extras?.get("PAYLOAD") as Parcelable?
+        if (dbg != null) {
+            if (dbg is Message) {
+                handler.handleMessage(dbg)
+            }
+        }
     }
 
-    private fun setMessenger(intent: Intent): Messenger? {
-        val extras = intent.extras
+    private fun setMessenger(intent: Intent?): Messenger? {
+        val extras = intent?.extras
         clientMessenger = extras?.get("MESSENGER") as Messenger?
-        val dbg = extras?.get("PAYLOAD") as Message?
-        if (dbg != null) {
-            handler.handleMessage(dbg)
-        }
+
         return clientMessenger
     }
 
     companion object {
         fun startService(context: Context, serviceClass: Class<*>, messenger: Messenger? = null,
-                         payload: Message? = null) {
-            if (!context.isServiceRunning(serviceClass) || (messenger != null) || (payload != null)) {
+                         payload: Parcelable? = null): Boolean {
+            if (!context.isServiceRunning(serviceClass)) {
                 val startIntent = Intent(context, serviceClass)
                 if (messenger != null) {
                     startIntent.putExtra("MESSENGER", messenger)
@@ -123,7 +128,9 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
                     startIntent.putExtra("PAYLOAD", payload)
                 }
                 context.startService(startIntent)
-            }
+                return true
+            } else
+                return false
         }
     }
 }

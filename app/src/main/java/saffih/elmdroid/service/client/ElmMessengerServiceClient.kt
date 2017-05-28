@@ -46,7 +46,7 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
         ElmBase<Model, Msg>(me) {
 
     override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model(), Msg.Init())
+        return ret(Model().copy(service = MService(mConnection = crateServiceConnection())), Msg.Init())
     }
 
     fun request(payload: API) {
@@ -112,7 +112,11 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
 
 
     private fun update(msg: Msg.Init, model: MService): Pair<MService, Que<Msg>> {
-        return ret(model.copy(mConnection = object : ServiceConnection {
+        return ret(model.copy(mConnection = crateServiceConnection()))
+    }
+
+    private fun crateServiceConnection(): ServiceConnection {
+        return object : ServiceConnection {
             override fun onServiceConnected(className: ComponentName, service: IBinder) {
                 // This is called when the connection with the service has been
                 // established, giving us the object we can use to
@@ -127,7 +131,7 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
                 // unexpectedly disconnected -- that is, its process crashed.
                 postDispatch(Msg.Service.Disconnected(className))
             }
-        }))
+        }
     }
 
     override fun view(model: Model, pre: Model?) {
@@ -147,6 +151,7 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
     }
 
     override fun onCreate() {
+
         onCreateBound()
     }
 
@@ -169,11 +174,11 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
                 Context.BIND_AUTO_CREATE)
     }
 
-    private fun startUnbound() {
+    fun startUnbound() {
         startService(me, javaClassName, replyMessenger)
     }
 
-    protected fun sendPayload(payload: Message) {
+    fun sendPayload(payload: Message) {
         startService(me, javaClassName, replyMessenger, payload)
     }
 
@@ -185,5 +190,4 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
     }
 
 }
-
 

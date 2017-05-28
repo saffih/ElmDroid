@@ -6,6 +6,7 @@ package saffih.elmdroid.gps.child
  */
 
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.location.Location
@@ -14,8 +15,8 @@ import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
-import saffih.elmdroid.ElmChild
 import saffih.elmdroid.Que
+import saffih.elmdroid.StateChild
 import saffih.elmdroid.activityCheckForPermission
 
 
@@ -58,7 +59,7 @@ sealed class Msg {
 data class Model(
         val enabled: Boolean = false,
         val lastLocation: Location? = null,
-        //        val time: java.util.Date? = null,
+        //        val queryDate: java.util.Date? = null,
         val status: Int = 0,
         val state: MState = MState()
 )
@@ -66,7 +67,7 @@ data class Model(
 data class MState(val listeners: List<LocationAdapter> = listOf<LocationAdapter>())
 
 
-abstract class ElmGpsChild(val me: Context) : ElmChild<Model, Msg>() {
+abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
     override fun onCreate() {
         super.onCreate()
     }
@@ -129,42 +130,10 @@ abstract class ElmGpsChild(val me: Context) : ElmChild<Model, Msg>() {
                     ret(model)
             is Msg.Api.Reply.NotifyLocation -> {
                 model.listeners.forEach { it.unregister() }
-//                onLocationChanged(msg.location)
+//                toast("LocationChanged  $msg}")
+                onLocationChanged(msg.location)
                 ret(model.copy(listeners = listOf()))
             }
-        }
-    }
-
-    override fun view(model: Model, pre: Model?) {
-        val setup = {}
-        checkView(setup, model, pre) {
-            viewEnabled(model.enabled, pre?.enabled)
-            view(model.lastLocation, pre?.lastLocation)
-            view(model.state, pre?.state)
-
-        }
-    }
-
-    private fun view(model: MState, pre: MState?) {
-        val setup = {}
-        checkView(setup, model, pre) {
-
-        }
-    }
-
-    private fun view(model: Location?, pre: Location?) {
-        val setup = {}
-        checkView(setup, model, pre) {
-            model!!
-            toast("LocationChanged  ${model}")
-            onLocationChanged(model)
-
-        }
-    }
-
-    private fun viewEnabled(model: Boolean, pre: Boolean?) {
-        val setup = { }
-        checkView(setup, model, pre) {
         }
     }
 
@@ -226,8 +195,8 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
 
 
     companion object {
-        fun checkPermission(me: Activity) {
-            activityCheckForPermission(me, "android.permission.ACCESS_FINE_LOCATION", 1)
+        fun checkPermission(me: Activity, code: Int = 1) {
+            activityCheckForPermission(me, Manifest.permission.ACCESS_FINE_LOCATION, code)
         }
 
         private val track = mutableSetOf<LocationAdapter>()

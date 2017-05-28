@@ -11,7 +11,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
+import android.os.Looper
 import android.support.v4.content.ContextCompat
+import android.widget.Toast
 
 /********************************/
 // que Que
@@ -110,7 +112,8 @@ interface StatePattern<M, MSG> {
     fun <T> ret(m: T) = m to Que<MSG>()
 
     fun dispatch()
-    fun addPending(msg: MSG) = addPending(Que<MSG>() + msg)
+    fun addPending(msg: MSG) = addPending(listOf(msg))
+    fun addPending(pending: List<MSG>) = addPending(Que(pending))
     fun addPending(pending: Que<MSG>)
     fun takePending(): Que<MSG>
 
@@ -160,7 +163,7 @@ interface ElmPattern<M, MSG> : StatePattern<M, MSG>, Viewable<M>
 
 //inline fun <reified T :
 //
-//        fun <PM, PMSG,M, MSG> ElmPattern<PM, PMSG>.bind(Child:<reified T:ElmPattern<M, MSG>>)
+//        fun <PM, PMSG,M, MSG> ElmPattern<PM, PMSG>.bindState(Child:<reified T:ElmPattern<M, MSG>>)
 // <reified T>
 
 abstract class StateChild<M, MSG> : StatePattern<M, MSG> {
@@ -188,7 +191,7 @@ abstract class StateChild<M, MSG> : StatePattern<M, MSG> {
 
 
 /**
- * Glue with parent delegate all to impl by calling bind on impl providing  message
+ * Glue with parent delegate all to impl by calling bindState on impl providing  message
  */
 open class StateBound<PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>>(open val impl: CHILD,
                                                                     private val parent: StatePattern<PM, PMSG>,
@@ -218,10 +221,10 @@ open class StateBound<PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>>(open val imp
 
 
 /**
- * bind method - providing impl parent msd conversion,
+ * bindState method - providing impl parent msd conversion,
  * and dispatch delegaton to the parent
  */
-fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bind(
+fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bindState(
         child: CHILD,
         toMsg: (MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD> {
     val res = StateBound(
@@ -234,7 +237,7 @@ fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bind(
 
 //
 ///**
-// * Glue with parent delegate all to impl by calling bind on impl providing  message
+// * Glue with parent delegate all to impl by calling bindState on impl providing  message
 // */
 //class ElmBound<PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>>(override val impl: CHILD,
 //                                                           private val parent: ElmPattern<PM, PMSG>,
@@ -245,7 +248,7 @@ fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bind(
 //}
 
 
-//fun <PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>> ElmPattern<PM, PMSG>.bind(
+//fun <PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>> ElmPattern<PM, PMSG>.bindState(
 //        child: CHILD,
 //        toMsg: (MSG) -> PMSG): ElmBound<PM, PMSG, M, MSG, CHILD> {
 //    val res = ElmBound(
@@ -256,6 +259,21 @@ fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bind(
 //    return res
 //}
 
+
+fun <PM, PMSG, M, MSG, CHILD, PARENT> PARENT.bind(
+        child: CHILD,
+        toMsg: (MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD>
+        where
+        CHILD : ElmChild<M, MSG>,
+        PARENT : StatePattern<PM, PMSG>,
+        PARENT : Viewable<PM> {
+    val res = StateBound(
+            child,
+            parent = this,
+            toMsg = toMsg)
+    child.dispatcher = { res.dispatch() }
+    return res
+}
 
 abstract class ElmChild<M, MSG> : StateChild<M, MSG>(), Viewable<M>
 
@@ -285,8 +303,10 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
             start()
     }
 
+    var halted = false
     override fun onDestroy() {
         mc = null
+        halted = true
     }
 
     // expose our immutable myModel
@@ -319,10 +339,11 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
     }
 
     // no locks - done in single view thread
-    // it should be "locked" single inner loop and dispatch at a time.
+    // it should be "locked" single inner loop and dispatch at a queryDate.
 
 
     override fun dispatch() {
+        if (halted) return
         val que = takePending()
         // todo - fail early. add code for checking the thread identity
         val newMC = mainCompute(que, mc!!)
@@ -393,6 +414,7 @@ abstract class ElmEngine<M, MSG> : StateEngine<M, MSG>(), Viewable<M> {
     }
 
     override fun dispatch() {
+        if (halted) return
         super.dispatch()
         callView(myModel)
     }
@@ -422,16 +444,30 @@ abstract class ElmBase<M, MSG>(open val me: Context?) : ElmEngine<M, MSG>() {
     private val mainHandler by lazy { Handler(me?.mainLooper) }
 
     // cross thread communication
+
     fun postDispatch(msg: MSG) {
-        mainHandler.post({ dispatch(msg) })
+        val function = { dispatch(msg) }
+        post(function)
+    }
+
+    protected fun post(function: () -> Unit) {
+        mainHandler.post(function)
+    }
+
+    fun postDispatch() {
+        mainHandler.post({ dispatch() })
     }
 
 
 }
 
-
+// todo should use list of all perms
 fun activityCheckForPermission(me: Activity, perm: String, code: Int,
-                               showExplanation: () -> Unit = {}): Boolean {
+                               showExplanation: (() -> Unit)? = null): Boolean {
+    fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
+        val handler = Handler(Looper.getMainLooper())
+        handler.post({ Toast.makeText(me, txt, duration).show() })
+    }
 
     val pm = me.packageManager
     val hasPerm = pm.checkPermission(perm, me.packageName)
@@ -447,7 +483,7 @@ fun activityCheckForPermission(me: Activity, perm: String, code: Int,
                 // Show an explanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
                 // sees the explanation, try again to request the permission.
-                showExplanation()
+                if (showExplanation == null) toast("must have permissions ${perm}") else showExplanation()
             } else {
                 // No explanation needed, we can request the permission.
                 me.requestPermissions(listOf(perm).toTypedArray(), code)

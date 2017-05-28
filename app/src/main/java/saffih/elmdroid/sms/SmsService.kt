@@ -6,10 +6,10 @@ import android.app.Service
 import android.os.Message
 import android.telephony.SmsMessage
 import saffih.elmdroid.Que
-import saffih.elmdroid.bind
+import saffih.elmdroid.bindState
 import saffih.elmdroid.service.ElmMessengerService
-import saffih.elmdroid.sms.child.ElmSmsChild
 import saffih.elmdroid.sms.child.MSms
+import saffih.elmdroid.sms.child.SmsChild
 import saffih.elmdroid.sms.child.Model as CModel
 import saffih.elmdroid.sms.child.Msg as CMsg
 
@@ -20,7 +20,6 @@ sealed class Msg {
     companion object {
         fun replySmsArrived(data: SmsMessage) = Msg.Api.Reply.SmsArrived(data)
     }
-
     fun isReply() = this is Api.Reply
     data class Child(val sms: CMsg) : Msg()
 
@@ -40,6 +39,7 @@ sealed class Msg {
         }
     }
 }
+
 
 
 /**
@@ -89,7 +89,7 @@ class SmsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         super.onDestroy()
     }
 
-    private val child = bind(object : ElmSmsChild(me) {
+    private val child = bindState(object : SmsChild(me) {
         override fun onSmsArrived(sms: List<SmsMessage>) {
             sms.forEach { dispatchReply(Msg.replySmsArrived(it)) }
         }
@@ -120,11 +120,5 @@ class SmsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         }
     }
 
-    override fun view(model: Model, pre: Model?) {
-        val setup = {}
-        checkView(setup, model, pre) {
-            child.impl.view(model.child, pre?.child)
-        }
-    }
 }
 

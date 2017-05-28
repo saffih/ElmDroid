@@ -6,6 +6,7 @@
 
 package saffih.elmdroid.sms.child
 
+import android.Manifest
 import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -21,7 +22,7 @@ open class SMSReceiverAdapter(val hook: (Array<out SmsMessage?>) -> Unit)  : Bro
 
     fun meRegister(me: Context ){
         val filter = IntentFilter()
-//        filter.priority=18
+        filter.priority = 18
         filter.addAction("android.provider.Telephony.SMS_RECEIVED")
         me.registerReceiver(this, filter)
     }
@@ -31,33 +32,35 @@ open class SMSReceiverAdapter(val hook: (Array<out SmsMessage?>) -> Unit)  : Bro
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-
-
-        if (intent.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
-            val smsMessages = if (Build.VERSION.SDK_INT >= 19) { //KITKAT
-                Telephony.Sms.Intents.getMessagesFromIntent(intent)
-            } else{
-                constructSmsFromPDUs(intent.extras?.get("pdus") as Array<*>)
-            }
-            hook(smsMessages)
-        }
+        hook(extractSms(intent))
     }
 
-    private fun constructSmsFromPDUs(rawPduData: Array<*>): Array<SmsMessage?> {
-        val smsMessages = arrayOfNulls<SmsMessage>(rawPduData.size)
-        for (n in rawPduData.indices) {
-            smsMessages[n] = SmsMessage.createFromPdu(rawPduData[n] as ByteArray)
-        }
-        return smsMessages.filterNotNull().toTypedArray()
-    }
+
 
 
     companion object {
-        fun checkPermission(me: Activity) {
-            activityCheckForPermission(me, "android.permission.RECEIVE_SMS", 1)
-            activityCheckForPermission(me, "android.permission.READ_SMS", 1)
-            activityCheckForPermission(me, "android.permission.SEND_SMS", 1)
+        fun checkPermission(me: Activity, code: Int = 1) {
+            activityCheckForPermission(me, Manifest.permission.RECEIVE_SMS, code)
+            activityCheckForPermission(me, Manifest.permission.READ_SMS, code)
+            activityCheckForPermission(me, Manifest.permission.SEND_SMS, code)
 
+        }
+
+        private fun constructSmsFromPDUs(rawPduData: Array<*>): Array<SmsMessage?> {
+            val smsMessages = arrayOfNulls<SmsMessage>(rawPduData.size)
+            for (n in rawPduData.indices) {
+                smsMessages[n] = SmsMessage.createFromPdu(rawPduData[n] as ByteArray)
+            }
+            return smsMessages.filterNotNull().toTypedArray()
+        }
+
+        fun extractSms(intent: Intent): Array<out SmsMessage?> {
+            val smsMessages = if (Build.VERSION.SDK_INT >= 19) { //KITKAT
+                Telephony.Sms.Intents.getMessagesFromIntent(intent)
+            } else {
+                constructSmsFromPDUs(intent.extras?.get("pdus") as Array<*>)
+            }
+            return smsMessages
         }
     }
 }

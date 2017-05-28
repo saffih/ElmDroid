@@ -8,8 +8,8 @@ import android.app.Service
 import android.location.Location
 import android.os.Message
 import saffih.elmdroid.Que
-import saffih.elmdroid.bind
-import saffih.elmdroid.gps.child.ElmGpsChild
+import saffih.elmdroid.bindState
+import saffih.elmdroid.gps.child.GpsChild
 import saffih.elmdroid.gps.child.Model
 import saffih.elmdroid.gps.child.Msg
 import saffih.elmdroid.service.ElmMessengerService
@@ -57,7 +57,7 @@ class GpsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         super.onDestroy()
     }
 
-    private val child = bind(object : ElmGpsChild(me) {
+    private val child = bindState(object : GpsChild(me) {
         override fun onLocationChanged(location: Location) {
             // ok as remote service we use the reply
             dispatchReply(Msg.replyLocationMsg(location))
@@ -73,7 +73,4 @@ class GpsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         return ret(m, c)
     }
 
-    override fun view(model: Model, pre: Model?) {
-        return child.impl.view(model, pre)
-    }
 }

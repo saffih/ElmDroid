@@ -7,11 +7,8 @@ import android.widget.TextView
 import android.widget.ToggleButton
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example1.hello.Turtle
-import saffih.elmdroid.ElmBase
-import saffih.elmdroid.Que
-import saffih.elmdroid.activityCheckForPermission
-import saffih.elmdroid.bind
-import saffih.elmdroid.sms.child.ElmSmsChild
+import saffih.elmdroid.*
+import saffih.elmdroid.sms.child.SmsChild
 import elmdroid.elmdroid.example1.hello.Model as HelloModel
 import elmdroid.elmdroid.example1.hello.Msg as HelloMsg
 
@@ -48,7 +45,7 @@ sealed class Msg {
 
 
 class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
-    private val sms = bind(object : ElmSmsChild(me) {
+    private val sms = bindState(object : SmsChild(me) {
         override fun onSmsArrived(sms: List<SmsMessage>) {
             sms.forEach { onSmsArrived(it) }
         }
