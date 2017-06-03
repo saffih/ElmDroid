@@ -1,10 +1,33 @@
+/*
+ * By Saffi Hartal, 2017.
+ *  Licensed to the Apache Software Foundation (ASF) under one
+ *  or more contributor license agreements.  See the NOTICE file
+ *  distributed with this work for additional information
+ *  regarding copyright ownership.  The ASF licenses this file
+ *  to you under the Apache License, Version 2.0 (the
+ *  "License"); you may not use this file except in compliance
+ *  with the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
 package saffih.elmdroid.service
 
 import android.app.ActivityManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.*
+import android.os.Handler
+import android.os.IBinder
+import android.os.Message
+import android.os.Messenger
 import android.widget.Toast
 import saffih.elmdroid.ElmBase
 
@@ -34,8 +57,7 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
 
     fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
         if (!debug) return
-        val handler = Handler(Looper.getMainLooper())
-        handler.post({ Toast.makeText(me, txt, duration).show() })
+        post({ Toast.makeText(me, txt, duration).show() })
     }
 
     override fun view(model: M, pre: M?) {
@@ -100,13 +122,6 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
     // for unbound service
     fun onStartCommand(intent: Intent?, flags: Int, startId: Int) {
         setMessenger(intent)
-        val extras = intent?.extras
-        val dbg = extras?.get("PAYLOAD") as Parcelable?
-        if (dbg != null) {
-            if (dbg is Message) {
-                handler.handleMessage(dbg)
-            }
-        }
     }
 
     private fun setMessenger(intent: Intent?): Messenger? {
@@ -117,16 +132,14 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
     }
 
     companion object {
-        fun startService(context: Context, serviceClass: Class<*>, messenger: Messenger? = null,
-                         payload: Parcelable? = null): Boolean {
+        fun startService(context: Context, serviceClass: Class<*>,
+                         messenger: Messenger? = null, receiver: (Intent) -> Unit = {}): Boolean {
             if (!context.isServiceRunning(serviceClass)) {
                 val startIntent = Intent(context, serviceClass)
                 if (messenger != null) {
                     startIntent.putExtra("MESSENGER", messenger)
                 }
-                if (payload != null) {
-                    startIntent.putExtra("PAYLOAD", payload)
-                }
+                receiver(startIntent)
                 context.startService(startIntent)
                 return true
             } else

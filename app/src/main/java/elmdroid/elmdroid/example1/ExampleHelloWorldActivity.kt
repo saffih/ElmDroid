@@ -51,7 +51,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
         }
 
         fun onSmsArrived(sms: SmsMessage) =
-                postDispatch(Msg.Activity.Greeted(Greeting(sms.messageBody)))
+                post { dispatch(Msg.Activity.Greeted(Greeting(sms.messageBody))) }
     }) { Msg.Activity.Sms(it) }
 
     val turtle = bind(Turtle(me)) { Msg.Activity.Turtle(it) }

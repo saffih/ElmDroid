@@ -71,12 +71,12 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         override fun onAPI(msg: GpsMsgApi) {
             when (msg) {
                 is saffih.elmdroid.gps.child.Msg.Api.Reply.NotifyLocation ->
-                    postDispatch(Msg.Activity.GotLocation(msg.location))
+                    post { dispatch(Msg.Activity.GotLocation(msg.location)) }
             }
         }
 
         override fun onConnected(msg: MService) {
-            postDispatch(Msg.Activity.FirstRequest())
+            post { dispatch(Msg.Activity.FirstRequest()) }
         }
     }
 

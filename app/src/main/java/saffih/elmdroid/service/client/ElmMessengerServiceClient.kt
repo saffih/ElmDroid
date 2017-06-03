@@ -1,3 +1,23 @@
+/*
+ * By Saffi Hartal, 2017.
+ *  Licensed to the Apache Software Foundation (ASF) under one
+ *  or more contributor license agreements.  See the NOTICE file
+ *  distributed with this work for additional information
+ *  regarding copyright ownership.  The ASF licenses this file
+ *  to you under the Apache License, Version 2.0 (the
+ *  "License"); you may not use this file except in compliance
+ *  with the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
 package saffih.elmdroid.service.client
 
 /**
@@ -55,7 +75,7 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
         if (!service.bound) {
             addPending(Msg.Service.Pending(toSend))
             init()
-            startBound()
+            bindToService()
             return
         }
         dispatch(toSend)
@@ -123,13 +143,13 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
                 // interact with the service.  We are communicating with the
                 // service using a Messenger, so here we get a client-side
                 // representation of that from the raw IBinder object.
-                postDispatch(Msg.Service.Connected(className, service))
+                post { dispatch(Msg.Service.Connected(className, service)) }
             }
 
             override fun onServiceDisconnected(className: ComponentName) {
                 // This is called when the connection with the service has been
                 // unexpectedly disconnected -- that is, its process crashed.
-                postDispatch(Msg.Service.Disconnected(className))
+                post { dispatch(Msg.Service.Disconnected(className)) }
             }
         }
     }
@@ -162,16 +182,21 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
 
     fun onCreateBound() {
         super.onCreate()
-        startBound()
+        bindToService()
     }
 
-    private fun startBound() {
+    private fun bindToService() {
         // Bind to the service
-        val startService = Intent(me, javaClassName)
-        startService.putExtra("MESSENGER", replyMessenger)
+        val bindIntent = Intent(me, javaClassName)
+        bindIntent.putExtra("MESSENGER", replyMessenger)
 
-        me.bindService(startService, myModel.service.mConnection,
+        me.bindService(bindIntent, myModel.service.mConnection,
                 Context.BIND_AUTO_CREATE)
+    }
+
+    private fun startUnboundAndBind() {
+        startUnbound()
+        bindToService()
     }
 
     fun startUnbound() {
@@ -179,7 +204,7 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
     }
 
     fun sendPayload(payload: Message) {
-        startService(me, javaClassName, replyMessenger, payload)
+        startService(me, javaClassName, replyMessenger)
     }
 
     override fun onDestroy() {

@@ -77,11 +77,13 @@ data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null
 class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
     var savedInstanceState: Bundle? = null
     fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate()
         this.savedInstanceState = savedInstanceState
     }
 
     override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model().copy(hadSavedState = (savedInstanceState != null)),
+        return ret(
+                Model().copy(hadSavedState = (savedInstanceState != null)),
                 Msg.Init())
     }
 
@@ -97,7 +99,7 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
                 //
                 // http://developer.android.com/guide/components/fragments.html
                 //
-                if (model.hadSavedState) {
+                if (!model.hadSavedState) { // create initial one
                     // Create the detail fragment and add it to the activity
                     // using a fragment transaction.
                     val arguments = Bundle()

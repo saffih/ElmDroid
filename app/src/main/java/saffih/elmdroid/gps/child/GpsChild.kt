@@ -1,3 +1,23 @@
+/*
+ * By Saffi Hartal, 2017.
+ *  Licensed to the Apache Software Foundation (ASF) under one
+ *  or more contributor license agreements.  See the NOTICE file
+ *  distributed with this work for additional information
+ *  regarding copyright ownership.  The ASF licenses this file
+ *  to you under the Apache License, Version 2.0 (the
+ *  "License"); you may not use this file except in compliance
+ *  with the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
 package saffih.elmdroid.gps.child
 
 /**
@@ -12,12 +32,11 @@ import android.content.Context
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Handler
-import android.os.Looper
 import android.widget.Toast
 import saffih.elmdroid.Que
 import saffih.elmdroid.StateChild
 import saffih.elmdroid.activityCheckForPermission
+import saffih.elmdroid.post
 
 
 sealed class Msg {
@@ -53,7 +72,6 @@ sealed class Msg {
 
     }
 }
-
 
 
 data class Model(
@@ -130,7 +148,6 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
                     ret(model)
             is Msg.Api.Reply.NotifyLocation -> {
                 model.listeners.forEach { it.unregister() }
-//                toast("LocationChanged  $msg}")
                 onLocationChanged(msg.location)
                 ret(model.copy(listeners = listOf()))
             }
@@ -139,8 +156,7 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
 
 
     fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
-        val handler = Handler(Looper.getMainLooper())
-        handler.post({ Toast.makeText(me, txt, duration).show() })
+        Toast.makeText(me, txt, duration).show()
     }
 
 
@@ -148,12 +164,26 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
         val lm: LocationManager = me.getSystemService(Context.LOCATION_SERVICE)
                 as LocationManager
         val allListeners = listOf(
-                LocationProviderDisabledListener(lm) { dispatch(Msg.Response.Disabled(it)) },
-                LocationProviderEnabledListener(lm) { dispatch(Msg.Response.Enabled(it)) },
-                LocationStatusChangedListener(lm) { provider, status, extras ->
-                    dispatch(Msg.Response.StatusChanged(provider, status, extras))
+                LocationProviderDisabledListener(lm) {
+                    me.post {
+                        dispatch(Msg.Response.Disabled(it))
+                    }
                 },
-                LocationChangedListener(lm) { dispatch(Msg.Response.LocationChanged(it)) })
+                LocationProviderEnabledListener(lm) {
+                    me.post {
+                        dispatch(Msg.Response.Enabled(it))
+                    }
+                },
+                LocationStatusChangedListener(lm) { provider, status, extras ->
+                    me.post {
+                        dispatch(Msg.Response.StatusChanged(provider, status, extras))
+                    }
+                },
+                LocationChangedListener(lm) {
+                    me.post {
+                        dispatch(Msg.Response.LocationChanged(it))
+                    }
+                })
 
         allListeners.forEach { it.registerAt() }
         return allListeners
@@ -181,7 +211,9 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
         val minDistance: Float = 10.toFloat()
         locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER, minTime, minDistance, this)
-        track.add(this)
+        synchronized(track) {
+            track.add(this)
+        }
     }
 
     operator fun invoke() {
@@ -190,7 +222,7 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
 
     fun unregister() {
         locationManager.removeUpdates(this)
-        track.remove(this)
+        synchronized(track) { track.remove(this) }
     }
 
 
@@ -200,7 +232,7 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
         }
 
         private val track = mutableSetOf<LocationAdapter>()
-        fun unregisterAll() = track.asIterable().forEach { it.unregister() }
+        fun unregisterAll() = track.toList().forEach { it.unregister() }
     }
 }
 

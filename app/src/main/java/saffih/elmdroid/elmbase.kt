@@ -1,3 +1,23 @@
+/*
+ * By Saffi Hartal, 2017.
+ *  Licensed to the Apache Software Foundation (ASF) under one
+ *  or more contributor license agreements.  See the NOTICE file
+ *  distributed with this work for additional information
+ *  regarding copyright ownership.  The ASF licenses this file
+ *  to you under the Apache License, Version 2.0 (the
+ *  "License"); you may not use this file except in compliance
+ *  with the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
 package saffih.elmdroid
 
 /**
@@ -11,7 +31,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
-import android.os.Looper
 import android.support.v4.content.ContextCompat
 import android.widget.Toast
 
@@ -239,26 +258,13 @@ fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bindSt
 ///**
 // * Glue with parent delegate all to impl by calling bindState on impl providing  message
 // */
-//class ElmBound<PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>>(override val impl: CHILD,
-//                                                           private val parent: ElmPattern<PM, PMSG>,
-//                                                           private val toMsg: (MSG) -> PMSG) :
-//        StateBound<PM, PMSG, M, MSG, CHILD>(impl, parent, toMsg) {
-//    //    fun init(): Pair<M, Que<MSG>> = impl.init()
+
+//class ElmBound<PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>>(
+//        impl: CHILD,
+//        parent: StatePattern<PM, PMSG>,
+//        toMsg: (MSG) -> PMSG) : StateBound<PM, PMSG, M, MSG, CHILD>(impl, parent, toMsg) {
 //    fun view(model: M, pre: M?) = impl.view(model, pre)
 //}
-
-
-//fun <PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>> ElmPattern<PM, PMSG>.bindState(
-//        child: CHILD,
-//        toMsg: (MSG) -> PMSG): ElmBound<PM, PMSG, M, MSG, CHILD> {
-//    val res = ElmBound(
-//            child,
-//            parent = this,
-//            toMsg = toMsg)
-//    child.dispatcher = { res.dispatch() }
-//    return res
-//}
-
 
 fun <PM, PMSG, M, MSG, CHILD, PARENT> PARENT.bind(
         child: CHILD,
@@ -296,6 +302,7 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
 
     // implementation vars - the latest state reference.
     var mc: Pair<M, Que<MSG>>? = null
+
     fun notStarted() = mc === null
     override fun onCreate() {
 
@@ -354,14 +361,15 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
     private var cnt = 0
 
     private fun mainCompute(que: Que<MSG>, mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
-        if (cnt != 0) throw RuntimeException("concurrent innerloop! dispatch was called instead of postDispatch")
+        if (cnt != 0) throw RuntimeException("concurrent innerloop! dispatch was called instead of post{dispatch}")
+
         cnt += 1
         val (model, que0) = mc
         var mc2 = ret(model, que0 + que)
         // consume commands
         val act = block@ {
             for (i in 0..1000) {
-                val que2 = mc2.second //+this.flushed()
+                val que2 = mc2.second + takePending()
                 if (que2.lst.isEmpty()) {
                     return@block false
                 }
@@ -419,6 +427,7 @@ abstract class ElmEngine<M, MSG> : StateEngine<M, MSG>(), Viewable<M> {
         callView(myModel)
     }
 }
+
 //
 ///**
 // * For Activities having main Handler and dispatch.
@@ -434,6 +443,11 @@ abstract class ElmEngine<M, MSG> : StateEngine<M, MSG>(), Viewable<M> {
 //    }
 //}
 
+
+fun Context.post(posted: () -> Unit): Boolean {
+    return Handler(this.mainLooper).post(posted)
+}
+
 /**
  * For Activities having main Handler and dispatch.
  */
@@ -441,23 +455,12 @@ abstract class ElmBase<M, MSG>(open val me: Context?) : ElmEngine<M, MSG>() {
 
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
-    private val mainHandler by lazy { Handler(me?.mainLooper) }
+    val mainHandler by lazy { Handler(me?.mainLooper) }
 
     // cross thread communication
-
-    fun postDispatch(msg: MSG) {
-        val function = { dispatch(msg) }
-        post(function)
-    }
-
     protected fun post(function: () -> Unit) {
         mainHandler.post(function)
     }
-
-    fun postDispatch() {
-        mainHandler.post({ dispatch() })
-    }
-
 
 }
 
@@ -465,8 +468,7 @@ abstract class ElmBase<M, MSG>(open val me: Context?) : ElmEngine<M, MSG>() {
 fun activityCheckForPermission(me: Activity, perm: String, code: Int,
                                showExplanation: (() -> Unit)? = null): Boolean {
     fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
-        val handler = Handler(Looper.getMainLooper())
-        handler.post({ Toast.makeText(me, txt, duration).show() })
+        me.post({ Toast.makeText(me, txt, duration).show() })
     }
 
     val pm = me.packageManager
@@ -494,5 +496,19 @@ fun activityCheckForPermission(me: Activity, perm: String, code: Int,
     val recheck = ContextCompat.checkSelfPermission(me, perm)
     val res = (recheck == PackageManager.PERMISSION_GRANTED)
     return res
+
+}
+
+// todo should use list of all perms
+fun Activity.activityCheckForPermission(perm: List<String>, code: Int): Boolean {
+    val me = this
+    val missing = perm.filter { ContextCompat.checkSelfPermission(me, it) != PackageManager.PERMISSION_GRANTED }
+    if (missing.isEmpty()) return true
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        me.requestPermissions(missing.toTypedArray(), code)
+    }
+    val recheck = missing.map { ContextCompat.checkSelfPermission(me, it) != PackageManager.PERMISSION_GRANTED }.all { it == true }
+    return recheck
 
 }
