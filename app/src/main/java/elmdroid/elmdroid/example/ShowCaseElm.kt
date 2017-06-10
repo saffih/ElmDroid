@@ -38,7 +38,8 @@ enum class NavOption(val id: Int) {
     Drawer(R.id.nav_drawer),
     Tabbed(R.id.nav_tabbed),
     MasterDetails(R.id.nav_masterdetails),
-    Maps(R.id.nav_maps),
+    MapsService(R.id.nav_maps_service),
+    MapsLocalService(R.id.nav_maps_local_service),
     MapsOrig(R.id.nav_mapsorig);
 
     companion object {
@@ -214,8 +215,10 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
                         Intent(me, TabbedActivity::class.java))
                 NavOption.MasterDetails -> me.startActivity(
                         Intent(me, ItemListActivity::class.java))
-                NavOption.Maps -> me.startActivity(
-                        Intent(me, MapsActivity::class.java))
+                NavOption.MapsService -> me.startActivity(
+                        Intent(me, MapsActivity::class.java).setAction("service"))
+                NavOption.MapsLocalService -> me.startActivity(
+                        Intent(me, MapsActivity::class.java).setAction("localService"))
                 NavOption.MapsOrig -> me.startActivity(
                         Intent(me, MapsActivityOrig::class.java))
             }

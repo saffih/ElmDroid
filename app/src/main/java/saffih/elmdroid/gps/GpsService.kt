@@ -21,13 +21,23 @@
 package saffih.elmdroid.gps
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.location.Location
+import android.os.Parcelable
+import saffih.elmdroid.StateBase
+import saffih.elmdroid.bindState
+import saffih.elmdroid.gps.child.GpsChild
+import saffih.elmdroid.service.LocalService
+import saffih.elmdroid.service.LocalServiceClient
+import saffih.elmdroid.gps.child.Model as GpsLocalServiceModel
+import saffih.elmdroid.gps.child.Msg as GpsLocalServiceMsg
 
 
 // bound service
 
 class GpsService : Service() {
-    val elm = GpsElm(this)
+    val elm = GpsServiceApp(this)
 
     override fun onBind(intent: android.content.Intent): android.os.IBinder? {
         return elm.onBind(intent)
@@ -44,6 +54,7 @@ class GpsService : Service() {
     }
 
     override fun onDestroy() {
+        elm.onDestroy()
         super.onDestroy()
     }
 
@@ -56,4 +67,69 @@ class GpsService : Service() {
     }
 
 }
+
+//  an exmaple for local service
+// app as annonymous inner class
+class GpsLocalService : LocalService() {
+    // service loop app
+    val app = object : StateBase<GpsLocalServiceModel, GpsLocalServiceMsg>(this) {
+        val gps = bindState(
+                object : GpsChild(this@GpsLocalService) {
+                    override fun onLocationChanged(location: Location) {
+                        broadcast(location)
+                    }
+                }) { it }
+
+
+        override fun onCreate() {
+            super.onCreate()
+            gps.onCreate()
+        }
+
+        override fun onDestroy() {
+            super.onDestroy()
+            gps.onDestroy()
+
+        }
+
+        override fun init() = gps.init()
+        override fun update(msg: GpsLocalServiceMsg, model: GpsLocalServiceModel) = gps.update(msg, model)
+    }
+
+    // delegate to app
+    override fun onCreate() {
+        super.onCreate()
+        app.onCreate()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return super.onStartCommand(intent, flags, startId)
+
+    }
+
+    fun request() = app.dispatch(GpsLocalServiceMsg.requestLocationMsg())
+    override fun onDestroy() {
+        unregisterAll()
+        app.onDestroy()
+        super.onDestroy()
+    }
+
+    override fun onRebind(intent: Intent?) {
+        super.onRebind(intent)
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        return super.onUnbind(intent)
+    }
+
+}
+
+// example only
+class GpsLocalServiceClient(me: Context) :
+        LocalServiceClient<GpsLocalService>(me, localserviceJavaClass = GpsService::class.java) {
+    override fun onReceive(payload: Parcelable?) {
+        payload as Location
+    }
+}
+
 

@@ -3,7 +3,9 @@ package elmdroid.elmdroid.example3
 import android.Manifest
 import android.location.Location
 import android.os.Bundle
+import android.os.Parcelable
 import android.support.v4.app.FragmentActivity
+import android.widget.Toast
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
@@ -12,6 +14,9 @@ import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
 import saffih.elmdroid.activityCheckForPermission
 import saffih.elmdroid.gps.GpsElmServiceClient
+import saffih.elmdroid.gps.GpsLocalService
+import saffih.elmdroid.post
+import saffih.elmdroid.service.LocalServiceClient
 import saffih.elmdroid.service.client.MService
 import saffih.elmdroid.gps.child.Msg as GpsMsg
 import saffih.elmdroid.gps.child.Msg.Api as GpsMsgApi
@@ -48,7 +53,6 @@ sealed class Msg {
             class MoveCamera(val cameraUpdate: CameraUpdate) : Map()
         }
 
-        class FirstRequest : Activity()
         class GotLocation(val location: Location) : Activity()
 
     }
@@ -67,7 +71,43 @@ data class MMap(val googleMap: GoogleMap? = null,
                 val camera: CameraUpdate? = null)
 
 class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMapReadyCallback {
-    val gps = object : GpsElmServiceClient(me) {
+    fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
+        me.post({ Toast.makeText(me, txt, duration).show() })
+    }
+
+    fun getPerm(): Boolean {
+        val perm = Manifest.permission.ACCESS_FINE_LOCATION
+        val code = 1
+        return activityCheckForPermission(me, perm, code)
+    }
+
+    // example using local service
+    val localServiceGps = object :
+            LocalServiceClient<GpsLocalService>(me, localserviceJavaClass = GpsLocalService::class.java) {
+        override fun onReceive(payload: Parcelable?) {
+            val location = payload as Location
+            post { dispatch(Msg.Activity.GotLocation(location)) }
+        }
+
+        override fun onConnected() {
+            super.onConnected()
+            post {
+                toast("Using local service")
+                fun must_succeed() {
+                    val sbound = bound!!
+                    if (getPerm()) {
+                        sbound.request()
+                    } else {
+                        post { must_succeed() }
+                    }
+                }
+                must_succeed()
+            }
+        }
+    }
+
+    // example using service
+    val serviceGps = object : GpsElmServiceClient(me) {
         override fun onAPI(msg: GpsMsgApi) {
             when (msg) {
                 is saffih.elmdroid.gps.child.Msg.Api.Reply.NotifyLocation ->
@@ -76,19 +116,36 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         }
 
         override fun onConnected(msg: MService) {
-            post { dispatch(Msg.Activity.FirstRequest()) }
+            post {
+                toast("Using service")
+                fun must_succeed() {
+                    if (getPerm()) {
+                        request(saffih.elmdroid.gps.child.Msg.Api.Request.Location())
+                    } else {
+                        post { must_succeed() }
+                    }
+                }
+                must_succeed()
+            }
         }
+    }
+
+    val useLocal by lazy {
+        val action = me.intent.action
+        action == "localService"
     }
 
     override fun onCreate() {
         super.onCreate()
         // Bind to the service
-        gps.onCreate()
+        if (useLocal) localServiceGps.onCreate()
+        else serviceGps.onCreate()
     }
 
     override fun onDestroy() {
         // Unbind from the service
-        gps.onDestroy()
+        if (useLocal) serviceGps.onDestroy()
+        else localServiceGps.onDestroy()
         super.onDestroy()
     }
 
@@ -120,16 +177,6 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
                         Msg.Activity.Map.AddMarker(MarkerOptions().position(here).title("you are here")),
                         Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(here)))
                 ret(model, que)
-            }
-            is Msg.Activity.FirstRequest -> {
-                val perm = Manifest.permission.ACCESS_FINE_LOCATION
-                val code = 1
-                if (activityCheckForPermission(me, perm, code) ){
-                    gps.request(saffih.elmdroid.gps.child.Msg.Api.Request.Location())
-                    ret(model)
-                }else {
-                    ret(model, msg)
-                }
             }
         }
     }

@@ -36,7 +36,7 @@ import android.os.Message
 import android.os.Messenger
 import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
-import saffih.elmdroid.service.ElmMessengerService.Companion.startService
+import saffih.elmdroid.service.ElmMessengerService.Companion.startServiceIfNotRunning
 
 
 sealed class Msg {
@@ -66,7 +66,7 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
         ElmBase<Model, Msg>(me) {
 
     override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model().copy(service = MService(mConnection = crateServiceConnection())), Msg.Init())
+        return ret(Model().copy(service = MService(mConnection = createServiceConnection())), Msg.Init())
     }
 
     fun request(payload: API) {
@@ -121,6 +121,7 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
             }
             is Msg.Service.Connected -> {
                 val que = model.pending
+
                 ret(model.copy(messenger = Messenger(msg.service), bound = true,
                         pending = Que()), que)
             }
@@ -132,10 +133,10 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
 
 
     private fun update(msg: Msg.Init, model: MService): Pair<MService, Que<Msg>> {
-        return ret(model.copy(mConnection = crateServiceConnection()))
+        return ret(model.copy(mConnection = createServiceConnection()))
     }
 
-    private fun crateServiceConnection(): ServiceConnection {
+    private fun createServiceConnection(): ServiceConnection {
         return object : ServiceConnection {
             override fun onServiceConnected(className: ComponentName, service: IBinder) {
                 // This is called when the connection with the service has been
@@ -200,11 +201,11 @@ abstract class ElmMessengerServiceClient<API>(override val me: Context,
     }
 
     fun startUnbound() {
-        startService(me, javaClassName, replyMessenger)
+        startServiceIfNotRunning(me, javaClassName, replyMessenger)
     }
 
     fun sendPayload(payload: Message) {
-        startService(me, javaClassName, replyMessenger)
+        startServiceIfNotRunning(me, javaClassName, replyMessenger)
     }
 
     override fun onDestroy() {

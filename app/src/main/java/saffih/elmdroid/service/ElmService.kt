@@ -132,8 +132,8 @@ abstract class ElmMessengerService<M, MSG, API : MSG>(
     }
 
     companion object {
-        fun startService(context: Context, serviceClass: Class<*>,
-                         messenger: Messenger? = null, receiver: (Intent) -> Unit = {}): Boolean {
+        fun startServiceIfNotRunning(context: Context, serviceClass: Class<*>,
+                                     messenger: Messenger? = null, receiver: (Intent) -> Unit = {}): Boolean {
             if (!context.isServiceRunning(serviceClass)) {
                 val startIntent = Intent(context, serviceClass)
                 if (messenger != null) {

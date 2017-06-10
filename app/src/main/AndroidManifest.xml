@@ -140,11 +140,17 @@
                 android:value="elmdroid.elmdroid.example4.TabbedActivity" />
         </activity>
 
+        <!-- example of map with real service -->
         <service
             android:name="saffih.elmdroid.gps.GpsService"
             android:enabled="true"
             android:exported="true"></service>
-        
+
+        <!-- example of map local service -->
+        <service
+            android:name="saffih.elmdroid.gps.GpsLocalService"
+            android:enabled="true"
+            android:exported="false"></service>
     </application>
 
 </manifest>

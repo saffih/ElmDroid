@@ -432,16 +432,16 @@ abstract class ElmEngine<M, MSG> : StateEngine<M, MSG>(), Viewable<M> {
 ///**
 // * For Activities having main Handler and dispatch.
 // */
-//abstract class StateBase<M, MSG>(open val me: Context?) : StateEngine<M, MSG>() {
-//    // Get a handler that can be used to post to the main thread
-//    // it is lazy since it is created after the view exist.
-//    private val mainHandler by lazy { Handler(me?.mainLooper) }
-//
-//    // cross thread communication
-//    fun postDispatch(msg: MSG) {
-//        mainHandler.post({ dispatch(msg) })
-//    }
-//}
+abstract class StateBase<M, MSG>(open val me: Context?) : StateEngine<M, MSG>() {
+    // Get a handler that can be used to post to the main thread
+    // it is lazy since it is created after the view exist.
+    val mainHandler by lazy { Handler(me?.mainLooper) }
+
+    // cross thread communication
+    protected fun post(function: () -> Unit) {
+        mainHandler.post(function)
+    }
+}
 
 
 fun Context.post(posted: () -> Unit): Boolean {

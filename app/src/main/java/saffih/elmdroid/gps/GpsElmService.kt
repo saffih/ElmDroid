@@ -59,7 +59,7 @@ fun Message.toApi(): Msg.Api {
 }
 /////////////////////////////////////
 
-class GpsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
+class GpsServiceApp(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         toApi = { it.toApi() },
         toMessage = { it.toMessage() }) {
     override fun onCreate() {
