@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.*
 import android.os.Binder
 import android.os.IBinder
+import android.os.Message
 import android.os.Parcelable
 import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
@@ -140,14 +141,14 @@ open class LocalService : Service() {
         val service = self
     }
 
-    fun broadcast(msg: Parcelable) {
+    fun broadcast(msg: Message) {
         val intent = Intent(this.javaClass.name)  //you can put anything in it with putExtra
         intent.putExtra("PAYLOAD", msg)
         Log.d(TAG, "sending broadcast")
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    fun payload(intent: Intent) = intent.extras.getParcelable<Parcelable>("PAYLOAD")
+    fun payload(intent: Intent) = intent.extras.getParcelable<Parcelable>("PAYLOAD") as Message
 
     private val registered = mutableListOf<BroadcastReceiver>()
     fun register(client: BroadcastReceiver) {
@@ -185,7 +186,7 @@ abstract class LocalServiceClient<LOCALSERVICE : LocalService>(val me: Context,
         bound?.unregister(this)
     }
 
-    abstract fun onReceive(payload: Parcelable?)
+    abstract fun onReceive(payload: Message?)
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == localserviceJavaClass.name) {

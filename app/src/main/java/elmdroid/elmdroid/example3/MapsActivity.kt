@@ -3,7 +3,7 @@ package elmdroid.elmdroid.example3
 import android.Manifest
 import android.location.Location
 import android.os.Bundle
-import android.os.Parcelable
+import android.os.Message
 import android.support.v4.app.FragmentActivity
 import android.widget.Toast
 import com.google.android.gms.maps.*
@@ -84,8 +84,8 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
     // example using local service
     val localServiceGps = object :
             LocalServiceClient<GpsLocalService>(me, localserviceJavaClass = GpsLocalService::class.java) {
-        override fun onReceive(payload: Parcelable?) {
-            val location = payload as Location
+        override fun onReceive(payload: Message?) {
+            val location = payload?.obj as Location
             post { dispatch(Msg.Activity.GotLocation(location)) }
         }
 
@@ -144,8 +144,8 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
 
     override fun onDestroy() {
         // Unbind from the service
-        if (useLocal) serviceGps.onDestroy()
-        else localServiceGps.onDestroy()
+        if (useLocal) localServiceGps.onDestroy()
+        else serviceGps.onDestroy()
         super.onDestroy()
     }
 

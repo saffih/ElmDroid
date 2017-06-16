@@ -24,7 +24,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.location.Location
-import android.os.Parcelable
+import android.os.Message
 import saffih.elmdroid.StateBase
 import saffih.elmdroid.bindState
 import saffih.elmdroid.gps.child.GpsChild
@@ -78,6 +78,11 @@ class GpsLocalService : LocalService() {
                     override fun onLocationChanged(location: Location) {
                         broadcast(location)
                     }
+
+                    private fun broadcast(location: Location) {
+                        val msg = Message.obtain(null, 0, location)
+                        broadcast(msg)
+                    }
                 }) { it }
 
 
@@ -127,8 +132,8 @@ class GpsLocalService : LocalService() {
 // example only
 class GpsLocalServiceClient(me: Context) :
         LocalServiceClient<GpsLocalService>(me, localserviceJavaClass = GpsService::class.java) {
-    override fun onReceive(payload: Parcelable?) {
-        payload as Location
+    override fun onReceive(payload: Message?) {
+        payload?.obj as Location
     }
 }
 
