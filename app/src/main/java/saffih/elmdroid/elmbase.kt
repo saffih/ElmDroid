@@ -214,7 +214,7 @@ abstract class StateChild<M, MSG> : StatePattern<M, MSG> {
  */
 open class StateBound<PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>>(open val impl: CHILD,
                                                                     private val parent: StatePattern<PM, PMSG>,
-                                                                    private val toMsg: (MSG) -> PMSG) {
+                                                                    private val toPMsg: (MSG) -> PMSG) {
     fun init(): Pair<M, Que<MSG>> = impl.init()
 
     fun addPending() {
@@ -226,7 +226,7 @@ open class StateBound<PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>>(open val imp
         parent.dispatch()
     }
 
-    fun pending() = Que(impl.takePending().map { toMsg(it) })
+    fun pending() = Que(impl.takePending().map { toPMsg(it) })
 
     fun update(msg: MSG, model: M): Pair<M, Que<PMSG>> {
         val (m, c) = impl.update(msg, model)
@@ -245,11 +245,11 @@ open class StateBound<PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>>(open val imp
  */
 fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bindState(
         child: CHILD,
-        toMsg: (MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD> {
+        toPMsg: (childMsg: MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD> {
     val res = StateBound(
             child,
             parent = this,
-            toMsg = toMsg)
+            toPMsg = toPMsg)
     child.dispatcher = { res.dispatch() }
     return res
 }
@@ -268,7 +268,7 @@ fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bindSt
 
 fun <PM, PMSG, M, MSG, CHILD, PARENT> PARENT.bind(
         child: CHILD,
-        toMsg: (MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD>
+        toPMsg: (childMsg: MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD>
         where
         CHILD : ElmChild<M, MSG>,
         PARENT : StatePattern<PM, PMSG>,
@@ -276,7 +276,7 @@ fun <PM, PMSG, M, MSG, CHILD, PARENT> PARENT.bind(
     val res = StateBound(
             child,
             parent = this,
-            toMsg = toMsg)
+            toPMsg = toPMsg)
     child.dispatcher = { res.dispatch() }
     return res
 }
