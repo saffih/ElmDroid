@@ -1,15 +1,48 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+
+def versionPropsFile = file('version.properties')
+def bumpVersion = { v ->
+    def Properties versionProps = new Properties()
+    def versionCode=v
+    if (v==null) {
+        versionProps.load(new FileInputStream(versionPropsFile))
+        versionCode = versionProps['VERSION_CODE'].toInteger() + 1
+    }
+    versionProps['VERSION_CODE'] = versionCode.toString()
+    versionProps.store(versionPropsFile.newWriter(), null)
+}
+if (!versionPropsFile.canRead()) {
+    bumpVersion(0)
+}
+
+task bumpVersionTask {
+    bumpVersion()
+}
+
+def getVersionCode = { ->
+    def versionCode
+    if (versionPropsFile.canRead()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionPropsFile))
+        versionCode = versionProps['VERSION_CODE'].toInteger() //+ 1
+    } else {
+        throw new GradleException("Could not read version.properties!")
+    }
+    return versionCode
+}
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.0"
+    buildToolsVersion "25.0.3"
     defaultConfig {
         applicationId "elmdroid.elmdroid"
         minSdkVersion 15
         targetSdkVersion 25
-        versionCode 1
-        versionName "1.0"
+        def versionCode = getVersionCode()
+        versionName "1." + versionCode
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -31,11 +64,13 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:25.3.1'
-    compile 'com.google.android.gms:play-services-maps:10.2.4'
+    compile 'com.google.android.gms:play-services-maps:11.0.4'
     compile 'com.android.support:support-v4:25.3.1'
     compile 'com.android.support:recyclerview-v7:25.3.1'
     compile 'us.feras.mdv:markdownview:1.1.0'
     testCompile 'junit:junit:4.12'
+    bumpVersionTask
+
 }
 repositories {
     mavenCentral()
