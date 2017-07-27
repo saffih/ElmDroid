@@ -26,7 +26,6 @@ import android.content.Intent
 import android.location.Location
 import android.os.Message
 import saffih.elmdroid.StateBase
-import saffih.elmdroid.bindState
 import saffih.elmdroid.gps.child.GpsChild
 import saffih.elmdroid.service.LocalService
 import saffih.elmdroid.service.LocalServiceClient
@@ -71,10 +70,14 @@ class GpsService : Service() {
 //  an exmaple for local service
 // app as annonymous inner class
 class GpsLocalService : LocalService() {
+    private fun  handleMSG(cur: saffih.elmdroid.gps.child.Msg) {app.dispatch(cur)}
     // service loop app
     val app = object : StateBase<GpsLocalServiceModel, GpsLocalServiceMsg>(this) {
-        val gps = bindState(
+        val gps =
                 object : GpsChild(this@GpsLocalService) {
+                    override fun handleMSG(cur: saffih.elmdroid.gps.child.Msg) {
+this@GpsLocalService.handleMSG(cur)                    }
+
                     override fun onLocationChanged(location: Location) {
                         broadcast(location)
                     }
@@ -83,7 +86,7 @@ class GpsLocalService : LocalService() {
                         val msg = Message.obtain(null, 0, location)
                         broadcast(msg)
                     }
-                }) { it }
+                }
 
 
         override fun onCreate() {
@@ -100,6 +103,7 @@ class GpsLocalService : LocalService() {
         override fun init() = gps.init()
         override fun update(msg: GpsLocalServiceMsg, model: GpsLocalServiceModel) = gps.update(msg, model)
     }
+
 
     // delegate to app
     override fun onCreate() {

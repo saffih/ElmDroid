@@ -1,5 +1,6 @@
 package elmdroid.elmdroid.example1
 
+import android.Manifest
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.telephony.SmsMessage
@@ -7,7 +8,8 @@ import android.widget.TextView
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example1.hello.Turtle
 import kotlinx.android.synthetic.main.activity_helloworld.*
-import saffih.elmdroid.*
+import saffih.elmdroid.ElmBase
+import saffih.elmdroid.activityCheckForPermission
 import saffih.elmdroid.sms.child.SmsChild
 import elmdroid.elmdroid.example1.hello.Model as HelloModel
 import elmdroid.elmdroid.example1.hello.Msg as HelloMsg
@@ -45,55 +47,67 @@ sealed class Msg {
 
 
 class ElmApp(override val me: ExampleHelloWorldActivity) : ElmBase<Model, Msg>(me) {
-    private val sms = bindState(object : SmsChild(me) {
+    private val sms = object : SmsChild(me) {
+        override fun handleMSG(cur: saffih.elmdroid.sms.child.Msg) {
+            dispatch(Msg.Activity.Sms(cur))
+        }
+
         override fun onSmsArrived(sms: List<SmsMessage>) {
             sms.forEach { onSmsArrived(it) }
         }
 
         fun onSmsArrived(sms: SmsMessage) =
                 post { dispatch(Msg.Activity.Greeted(Greeting(sms.messageBody))) }
-    }) { Msg.Activity.Sms(it) }
+    }
 
-    val turtle = bind(Turtle(me)) { Msg.Activity.Turtle(it) }
+    val turtle = object:Turtle(me) {
+        override fun handleMSG(cur: elmdroid.elmdroid.example1.hello.Msg) {
+            dispatch(Msg.Activity.Turtle(cur))
+        }
+    }
 
-    override fun init() = ret(Model(), Msg.Init)
+    override fun init():Model {
+        dispatch(Msg.Init)
+        return Model()
+    }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+        override fun update(msg: Msg, model: Model): Model{
         return when (msg) {
             is Msg.Init -> {
-                val (m, c) = update(msg, model.activity)
-                ret(model.copy(activity = m), c)
+                val m = update(msg, model.activity)
+                model.copy(activity = m)
             }
             is Msg.Activity -> {
                 // several updates
-                val (sm, sc) = update(msg, model.activity)
+                val sm = update(msg, model.activity)
 
-                ret(model.copy(activity = sm), sc)
+                model.copy(activity = sm)
             }
         }
     }
 
-    private fun update(msg: Msg.Init, model: MActivity): Pair<MActivity, Que<Msg>> {
-        val (m, c) = turtle.update(HelloMsg.Init(), model.turtle)
-        return ret(model.copy(turtle = m), c)
+    private fun update(msg: Msg.Init, model: MActivity): MActivity{
+        val m = turtle.update(HelloMsg.Init(), model.turtle)
+        return model.copy(turtle = m)
     }
 
-    fun update(msg: Msg.Activity, model: MActivity): Pair<MActivity, Que<Msg>> {
+    fun update(msg: Msg.Activity, model: MActivity): MActivity{
         return when (msg) {
             is Msg.Activity.Greeted -> {
-                ret(model.copy(greeting = msg.v))
+                model.copy(greeting = msg.v)
             }
             is Msg.Activity.GreetedToggle -> {
                 val v = if (model.greeting == intialGreating) Greeting("world") else intialGreating
-                ret(model, Msg.Activity.Greeted(v))
+                dispatch(Msg.Activity.Greeted(v))
+                model
             }
             is Msg.Activity.Turtle -> {
-                val (m, c) = turtle.update(msg.smsg, model.turtle)
-                ret(model.copy(turtle = m), c)
+                val m = turtle.update(msg.smsg, model.turtle)
+                model.copy(turtle = m)
             }
             is Msg.Activity.Sms -> {
-                val (m, c) = sms.update(msg.smsg, model.sms)
-                ret(model.copy(sms = m), c)
+                val m = sms.update(msg.smsg, model.sms)
+                model.copy(sms = m)
             }
         }
     }
@@ -117,7 +131,7 @@ class ElmApp(override val me: ExampleHelloWorldActivity) : ElmBase<Model, Msg>(m
 
         checkView(setup, model, pre) {
             view(model.greeting, pre?.greeting)
-            turtle.impl.view(model.turtle, pre?.turtle)
+            turtle.view(model.turtle, pre?.turtle)
         }
     }
 
@@ -134,12 +148,12 @@ class ElmApp(override val me: ExampleHelloWorldActivity) : ElmBase<Model, Msg>(m
     }
 
     fun onPause() {
-        sms.impl.onDestroy()
+        sms.onDestroy()
     }
 
 
     fun onResume() {
-        sms.impl.onCreate()
+        sms.onCreate()
     }
 }
 
@@ -147,9 +161,9 @@ class ExampleHelloWorldActivity : AppCompatActivity() {
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        activityCheckForPermission(this, "android.permission.RECEIVE_SMS", 1)
-        activityCheckForPermission(this, "android.permission.READ_SMS", 1)
-//        activityCheckForPermission(this, "android.permission.SEND_SMS", 1)
+        activityCheckForPermission(listOf(Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.READ_SMS,
+                Manifest.permission.SEND_SMS), 1)
 
         app.onCreate()
     }

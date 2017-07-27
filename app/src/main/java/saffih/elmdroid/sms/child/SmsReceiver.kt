@@ -20,8 +20,6 @@
 
 package saffih.elmdroid.sms.child
 
-import android.Manifest
-import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -29,7 +27,6 @@ import android.content.IntentFilter
 import android.os.Build
 import android.provider.Telephony
 import android.telephony.SmsMessage
-import saffih.elmdroid.activityCheckForPermission
 import saffih.elmdroid.post
 
 
@@ -57,12 +54,6 @@ open class SMSReceiverAdapter(val hook: (Array<out SmsMessage?>) -> Unit,
 
 
     companion object {
-        fun checkPermission(me: Activity, code: Int = 1) {
-            activityCheckForPermission(me, Manifest.permission.RECEIVE_SMS, code)
-            activityCheckForPermission(me, Manifest.permission.READ_SMS, code)
-            activityCheckForPermission(me, Manifest.permission.SEND_SMS, code)
-
-        }
 
         private fun constructSmsFromPDUs(rawPduData: Array<*>): Array<SmsMessage?> {
             val smsMessages = arrayOfNulls<SmsMessage>(rawPduData.size)

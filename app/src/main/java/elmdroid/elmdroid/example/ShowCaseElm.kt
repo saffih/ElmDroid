@@ -22,7 +22,6 @@ import kotlinx.android.synthetic.main.activity_show_case.*
 import kotlinx.android.synthetic.main.app_bar_show_case.*
 import kotlinx.android.synthetic.main.nav_header_showcase.view.*
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.Que
 
 
 /**
@@ -120,68 +119,69 @@ sealed class DrawerOption {
 class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         NavigationView.OnNavigationItemSelectedListener {
 
-    override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model(), Msg.Init())
+    override fun init(): Model{
+        dispatch(Msg.Init())
+        return Model()
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
             is Msg.Init -> {
-                ret(model)
+                model
             }
             else -> {
-                val (m, q) = update(msg, model.activity)
-                ret(model.copy(activity = m), q)
+                val m = update(msg, model.activity)
+                model.copy(activity = m)
             }
         }
     }
 
-    fun update(msg: Msg, model: MActivity): Pair<MActivity, Que<Msg>> {
-//        return ret(myModel)
+    fun update(msg: Msg, model: MActivity): MActivity{
+//        return myModel)
         return when (msg) {
             is Msg.Init -> {
-                ret(model)
+                model
             }
             is Msg.Fab.Clicked -> {
                 Snackbar.make(msg.view, "Exit", Snackbar.LENGTH_LONG)
                         .setAction("Finish", { me.finish() }).show()
-                ret(model)
+                model
             }
             is Msg.Option -> {
-                val (m, q) = update(msg, model.options)
-                ret(model.copy(options = m), q)
+                val m= update(msg, model.options)
+                model.copy(options = m)
             }
             is Msg.Action.OpenTwitter -> {
                 val name = msg.name
                 me.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com/${name}")))
-                ret(model)
+                model
             }
             is Msg.Action.UIToast -> {
                 msg.show(me)
-                ret(model)
+                model
             }
         }
     }
 
-    fun update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
+    fun update(msg: Msg.Option, model: MOptions): MOptions{
         return when (msg) {
             is Msg.Option.ItemSelected -> {
-                val (m, c) = update(msg, model.itemOption)
-                ret(model.copy(itemOption = m), c)
+                val m= update(msg, model.itemOption)
+                model.copy(itemOption = m)
             }
             is Msg.Option.Navigation -> {
-                val (m, c) = update(msg, model.navOption)
-                ret(model.copy(navOption = m), c)
+                val m = update(msg, model.navOption)
+                model.copy(navOption = m)
             }
             is Msg.Option.Drawer -> {
-                val (m, c) = update(msg, model.drawer)
-                ret(model.copy(drawer = m), c)
+                val m = update(msg, model.drawer)
+                model.copy(drawer = m)
             }
         }
     }
 
-    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
-//         return ret(myModel)
+    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): MItemOption{
+//         return myModel)
         val item = msg.item
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
@@ -189,20 +189,20 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         val id = item.itemId
         val selected = ItemOption.byId(id)
         return when (selected) {
-            ItemOption.settings -> ret(MItemOption(item = selected))
-            else -> ret(model.copy(handled = false))
+            ItemOption.settings -> MItemOption(item = selected)
+            else -> model.copy(handled = false)
         }
     }
 
-    private fun update(msg: Msg.Option.Navigation, model: MNavOption): Pair<MNavOption, Que<Msg>> {
-        //        return ret(myModel)
+    private fun update(msg: Msg.Option.Navigation, model: MNavOption): MNavOption{
+        //        return myModel)
         val item = msg.item
         // Handle navigation view item clicks here.
         val id = item.itemId
         val nav = NavOption.byId(id)
         return if (nav == null) {
-            // dispatch(Msg.Option.Drawer(DrawerOption.closed))
-            ret(model.copy(nav = null), Msg.Option.Drawer(DrawerOption.closed))
+             dispatch(Msg.Option.Drawer(DrawerOption.closed))
+            model.copy(nav = null)
         } else {
             when (nav) {
                 NavOption.HelloWorld -> me.startActivity(
@@ -220,15 +220,15 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
                 NavOption.MapsOrig -> me.startActivity(
                         Intent(me, MapsActivityOrig::class.java))
             }
-            ret(model.copy(nav = nav, toDisplay = true))
+            model.copy(nav = nav, toDisplay = true)
 
         }
     }
 
-    fun update(msg: Msg.Option.Drawer, model: MDrawer): Pair<MDrawer, Que<Msg>> {
+    fun update(msg: Msg.Option.Drawer, model: MDrawer): MDrawer{
         return when (msg.item) {
-            DrawerOption.opened -> ret(model.copy(i = DrawerOption.opened))
-            DrawerOption.closed -> ret(model.copy(i = DrawerOption.closed))
+            DrawerOption.opened -> model.copy(i = DrawerOption.opened)
+            DrawerOption.closed -> model.copy(i = DrawerOption.closed)
         }
     }
 

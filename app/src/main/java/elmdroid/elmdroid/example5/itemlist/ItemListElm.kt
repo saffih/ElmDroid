@@ -14,8 +14,8 @@ import android.widget.TextView
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example5.ItemDetailActivity
 import elmdroid.elmdroid.example5.ItemDetailFragment
+import kotlinx.android.synthetic.main.item_list.*
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.Que
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -100,13 +100,14 @@ data class MFab (
 )
 
 class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
-    override fun init() = ret(Model(), Msg.Init)
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
-        val (activity, q)=update(msg, model.activity)
-            return ret(model.copy(activity = activity), q)
+    override fun init() :Model{ dispatch(Msg.Init)
+        return Model()}
+    override fun update(msg: Msg, model: Model): Model {
+        val activity=update(msg, model.activity)
+            return model.copy(activity = activity)
     }
 
-    private fun update(msg: Msg, model: MActivity): Pair<MActivity, Que<Msg>> {
+    private fun update(msg: Msg, model: MActivity): MActivity {
         return when ( msg ) {
 
             Msg.Init -> {
@@ -115,26 +116,26 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
                 // large-screen layouts (res/values-w900dp).
                 // If this view is present, then the
                 // activity should be in two-pane mode.
-                ret(model.copy(mTwoPane = mTwoPane, items = CDummyContent().getDemo()))
+                model.copy(mTwoPane = mTwoPane, items = CDummyContent().getDemo())
             }
             is Msg.Recycler -> {
-                val (m,q) =
+                val m =
                         update(msg, model.items)
-                ret( model.copy(items = m), q)
+                 model.copy(items = m)
             }
             is Msg.Fab.Clicked -> {
-                val (m,q) = update(msg, model.fab)
-                ret( model.copy(fab = m), q)
+                val m = update(msg, model.fab)
+                 model.copy(fab = m)
             }
             is Msg.Action.GotoOrig ->      {
                 me.startActivity(Intent(me,
                         elmdroid.elmdroid.example5orig.ItemListActivity::class.java))
-                ret(model)
+                model
             }
         }
     }
 
-    private fun  update(msg: Msg.Recycler, model: List<MItem>): Pair<List<MItem>, Que<Msg>> {
+    private fun  update(msg: Msg.Recycler, model: List<MItem>): List<MItem> {
         return when (msg) {
             is Msg.Recycler.ItemHolderClicked -> {
                 val item = model.get(msg.position)
@@ -154,14 +155,14 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
 
                     context.startActivity(intent)
                 }
-                ret(model)
+                model
             }
         }
     }
-    private fun  update(msg: Msg.Fab, model: MFab): Pair<MFab, Que<Msg>> {
-//        return ret(myModel)
+    private fun  update(msg: Msg.Fab, model: MFab): MFab {
+//        return myModel)
         return when (msg) {
-            is Msg.Fab.Clicked -> ret(model.copy(clicked = msg.v))
+            is Msg.Fab.Clicked -> model.copy(clicked = msg.v)
         }
     }
 
@@ -197,7 +198,7 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
 
     private fun view(model: List<MItem>, pre: List<MItem>?) {
         val setup = {
-            val recyclerView = me.findViewById(R.id.item_list)!! as RecyclerView
+            val recyclerView = me.item_list
 
             class ViewHolder(val mView: View) : RecyclerView.ViewHolder(mView) {
                 val mIdView: TextView
@@ -245,10 +246,14 @@ class ItemListElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) 
                 }
             }
             recyclerView.adapter = Adapter()
+
         }
         checkView(setup, model, pre){
+            // dirty recreate
+            setup()
+
             model.forEachIndexed { index, m ->
-                val p = pre?.get(index)
+                val p = pre?.getOrNull(index)
                 view(m, p)
             }
         }

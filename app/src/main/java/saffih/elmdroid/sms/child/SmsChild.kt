@@ -27,7 +27,6 @@ import android.os.Looper
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
 import android.widget.Toast
-import saffih.elmdroid.Que
 import saffih.elmdroid.StateChild
 
 //import saffih.elmdroid.sms.toast
@@ -55,27 +54,28 @@ abstract class SmsChild(val me: Context) : StateChild<Model, Msg>() {
 
     //    for services
     override fun onCreate() {
-        super.onCreate()
+//        super.onCreate()
         smsReceiver.meRegister(me)
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+//        super.onDestroy()
         smsReceiver.meUnregister(me)
     }
 
-    override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model(), Msg.Init())
+    override fun init(): Model{
+         dispatch(Msg.Init())
+        return Model()
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun update(msg: Msg, model: Model): Model{
         return when (msg) {
             is Msg.Init -> {
-                ret(model)
+                model
             }
             is Msg.Received -> {
                 onSmsArrived(msg.received)
-                ret(model)
+                model
             }
         }
     }

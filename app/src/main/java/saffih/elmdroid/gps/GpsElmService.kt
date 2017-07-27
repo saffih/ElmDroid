@@ -22,8 +22,6 @@ package saffih.elmdroid.gps
 import android.app.Service
 import android.location.Location
 import android.os.Message
-import saffih.elmdroid.Que
-import saffih.elmdroid.bindState
 import saffih.elmdroid.gps.child.GpsChild
 import saffih.elmdroid.gps.child.Model
 import saffih.elmdroid.gps.child.Msg
@@ -72,20 +70,24 @@ class GpsServiceApp(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         super.onDestroy()
     }
 
-    private val child = bindState(object : GpsChild(me) {
+    private val child = object : GpsChild(me) {
+        override fun handleMSG(cur: Msg) {
+            this@GpsServiceApp.dispatch(cur)
+        }
+
         override fun onLocationChanged(location: Location) {
             // ok as remote service we use the reply
             dispatchReply(Msg.replyLocationMsg(location))
         }
-    }) { it }
+    }
 
-    override fun init(): Pair<Model, Que<Msg>> {
+    override fun init(): Model {
         return child.init()
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
-        val (m, c) = child.update(msg, model)
-        return ret(m, c)
+    override fun update(msg: Msg, model: Model): Model {
+        val m = child.update(msg, model)
+        return m
     }
 
 }

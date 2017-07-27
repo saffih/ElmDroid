@@ -31,79 +31,27 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
+import android.os.Looper
+import android.os.Message
 import android.support.v4.content.ContextCompat
+import android.util.Log
 import android.widget.Toast
 
-/********************************/
-// que Que
 
-data class Que<T>(val lst: List<T>) : Iterable<T> {
-    constructor() : this(listOf<T>())
+abstract class MsgQue<MSG>(looper: Looper?, val what: Int) : Handler(looper) {
+    constructor(what: Int) : this(Looper.getMainLooper(), what)
+    constructor() : this(Looper.getMainLooper(), 0)
 
-    override fun iterator(): Iterator<T> = lst.iterator()
-    fun join(another: List<T>) = Que<T>(lst + another)
-    fun join(msg: T?) = if (msg == null) this else Que<T>(lst + msg)
-    fun join(que: Que<T>?) = if (que == null) this else join(que.lst)
-
-    fun split() = Pair(
-            // Msg part
-            if (lst.isEmpty()) null else lst.first(),
-            // Que smsg part. "batch" list
-            if (lst.isEmpty()) this else Que(lst.drop(1)))
-
-    operator fun plus(another: List<T>) = this.join(another)
-    operator fun plus(que: Que<T>?) = this.join(que)
-    operator fun plus(msg: T) = this.join(msg)
-}
-
-fun <T> T.que(): Que<T> = Que(lst = listOf(this))
-
-
-/**
- * ElmBase - Extending the POC.
- * Requires Msg Modle and implementation of the 3 methods:
- * init update and view
- * having Activity started and providing it.
- * M generic type should be immutable all the way.
- * MSG should be nested sealed classes with data class leafs (may use but not recommended using object instance)
- */
-
-//class QueRef<T>(var ref: Que<T>)
-
-
-class MsgQue<MSG> {
-    // empty typed lists (immutable).
-    val noneQue = Que(listOf<MSG>())
-    //    var q = QueRef(noneQue)
-    var q = noneQue
-
-//    fun dispatch(msg: MSG? = null) {
-//        dispatch(msg?.que() ?: noneQue)
-//    }
-//
-//    fun dispatch(lst: List<MSG>) {
-//        dispatch(Que(lst))
-//    }
-
-//    abstract fun dispatch()
-
-//    fun dispatch(que: Que<MSG>) {
-//        addPending(que)
-//        dispatch()
-//    }
-
-    fun flushed(): Que<MSG> {
-        val res = q
-        q = noneQue
-        return res
+    override fun handleMessage(msg: Message?) {
+        val cur = msg?.obj as MSG
+        handleMSG(cur)
     }
 
-    fun addPending(que: Que<MSG>) {
-        q += que
-    }
+    abstract fun handleMSG(cur: MSG);
 
-    fun addPending(msg: MSG) {
-        q += msg
+    open fun dispatch(msg: MSG) {
+        val m = Message.obtain(null, what, msg)
+        sendMessage(m)
     }
 
 }
@@ -111,50 +59,27 @@ class MsgQue<MSG> {
 
 interface StatePattern<M, MSG> {
 
+    val que: MsgQue<MSG>
     // Update helper - for Iterable a. delegate updates b. chain the commands in que
     fun <M, MSG, SMSG : MSG> update(msg: SMSG,
                                     iterable: Iterable<M>,
-                                    updateElement: (SMSG, M) -> Pair<M, Que<MSG>>
+                                    updateElement: (SMSG, M) -> M
 
-    ): Pair<List<M>, Que<MSG>> {
-        val (mIt, qIt) = iterable.map({ updateElement(msg, it) }).unzip()
-        val que: Que<MSG> = qIt.reduce({ acc, q -> acc.join(q.lst) })
-        return mIt to que
+    ): List<M> {
+        return iterable.map({ updateElement(msg, it) })
     }
 
-    // return myModel parts - reduced.
-    fun <T> ret(m: T, que: Que<MSG>) = m to que
 
-    fun <T> ret(m: T, msgs: List<MSG>) = m to Que<MSG>().join(msgs)
-    fun <T> ret(m: T, msg: MSG) = m to msg.que()
-    // Empty list of commands
-    fun <T> ret(m: T) = m to Que<MSG>()
+    fun dispatch(msg: MSG) = que.dispatch(msg)
+    fun dispatch(pending: List<MSG>) = pending.map { dispatch(it) }
 
-    fun dispatch()
-    fun addPending(msg: MSG) = addPending(listOf(msg))
-    fun addPending(pending: List<MSG>) = addPending(Que(pending))
-    fun addPending(pending: Que<MSG>)
-    fun takePending(): Que<MSG>
-
-    fun dispatch(msg: MSG? = null) {
-        dispatch(msg?.que() ?: Que<MSG>())
-    }
-
-    fun dispatch(lst: List<MSG>) {
-        dispatch(Que(lst))
-    }
-
-    fun dispatch(que: Que<MSG>) {
-        addPending(que)
-        dispatch()
-    }
 
     // Mandatory methods
     // Elm Init - init : (Model, Que Msg)
-    fun init(): Pair<M, Que<MSG>>
+    fun init(): M
 
     // In Elm - update : Msg -> Model -> (Model, Que Msg)
-    fun update(msg: MSG, model: M): Pair<M, Que<MSG>>
+    fun update(msg: MSG, model: M): M
 
 
     fun onCreate()
@@ -186,104 +111,24 @@ interface ElmPattern<M, MSG> : StatePattern<M, MSG>, Viewable<M>
 // <reified T>
 
 abstract class StateChild<M, MSG> : StatePattern<M, MSG> {
-    val q = MsgQue<MSG>()
-    override fun takePending() = q.flushed()
-
-    internal var dispatcher: (() -> Unit)? = null
-    override fun dispatch() {
-        dispatcher!!()
+    override val que = object : MsgQue<MSG>() {
+        override fun handleMSG(cur: MSG) {
+            this@StateChild.handleMSG(cur)
+        }
     }
 
-    override fun addPending(pending: Que<MSG>) = q.addPending(pending)
-
-
     override fun onCreate() {
-        assert(dispatcher != null)
-        assert(takePending().lst.isEmpty())
     }
 
     override fun onDestroy() {
-        assert(takePending().lst.isEmpty())
     }
 
-}
-
-
-/**
- * Glue with parent delegate all to impl by calling bindState on impl providing  message
- */
-open class StateBound<PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>>(open val impl: CHILD,
-                                                                    private val parent: StatePattern<PM, PMSG>,
-                                                                    private val toPMsg: (MSG) -> PMSG) {
-    fun init(): Pair<M, Que<MSG>> = impl.init()
-
-    fun addPending() {
-        parent.addPending(pending())
-    }
-
-    fun dispatch() {
-        addPending()
-        parent.dispatch()
-    }
-
-    fun pending() = Que(impl.takePending().map { toPMsg(it) })
-
-    fun update(msg: MSG, model: M): Pair<M, Que<PMSG>> {
-        val (m, c) = impl.update(msg, model)
-        impl.addPending(c)
-        return m to pending()
-    }
-
-    fun onCreate() = impl.onCreate()
-    fun onDestroy() = impl.onDestroy()
-}
-
-
-/**
- * bindState method - providing impl parent msd conversion,
- * and dispatch delegaton to the parent
- */
-fun <PM, PMSG, M, MSG, CHILD : StateChild<M, MSG>> StatePattern<PM, PMSG>.bindState(
-        child: CHILD,
-        toPMsg: (childMsg: MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD> {
-    val res = StateBound(
-            child,
-            parent = this,
-            toPMsg = toPMsg)
-    child.dispatcher = { res.dispatch() }
-    return res
-}
-
-//
-///**
-// * Glue with parent delegate all to impl by calling bindState on impl providing  message
-// */
-
-//class ElmBound<PM, PMSG, M, MSG, CHILD : ElmChild<M, MSG>>(
-//        impl: CHILD,
-//        parent: StatePattern<PM, PMSG>,
-//        toMsg: (MSG) -> PMSG) : StateBound<PM, PMSG, M, MSG, CHILD>(impl, parent, toMsg) {
-//    fun view(model: M, pre: M?) = impl.view(model, pre)
-//}
-
-fun <PM, PMSG, M, MSG, CHILD, PARENT> PARENT.bind(
-        child: CHILD,
-        toPMsg: (childMsg: MSG) -> PMSG): StateBound<PM, PMSG, M, MSG, CHILD>
-        where
-        CHILD : ElmChild<M, MSG>,
-        PARENT : StatePattern<PM, PMSG>,
-        PARENT : Viewable<PM> {
-    val res = StateBound(
-            child,
-            parent = this,
-            toPMsg = toPMsg)
-    child.dispatcher = { res.dispatch() }
-    return res
+    abstract fun handleMSG(cur: MSG)
 }
 
 abstract class ElmChild<M, MSG> : StateChild<M, MSG>(), Viewable<M>
 
-class ElmChildAdapter<M, MSG>(val delegate: ElmPattern<M, MSG>) : ElmChild<M, MSG>() {
+abstract class ElmChildAdapter<M, MSG>(val delegate: ElmPattern<M, MSG>) : ElmChild<M, MSG>() {
     override fun onCreate() = delegate.onCreate()
     override fun onDestroy() = delegate.onDestroy()
 
@@ -291,24 +136,58 @@ class ElmChildAdapter<M, MSG>(val delegate: ElmPattern<M, MSG>) : ElmChild<M, MS
     override fun update(msg: MSG, model: M) = delegate.update(msg, model)
     override fun view(model: M, pre: M?) = delegate.view(model, pre)
 }
+private val  TAG: String=StateEngine::class.java.name
 
 
 abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
-    val noneQue = Que(listOf<MSG>())
+    var cnt = 0;
+    open val what: Int = 1
+    open val looper: Looper get () {
+        return Looper.getMainLooper()
+    }
+    override val que: MsgQue<MSG> by lazy {
+        object : MsgQue<MSG>(this@StateEngine.looper, this@StateEngine.what) {
+            override fun handleMSG(cur: MSG) {
+                this@StateEngine.handleMSG(cur)
+            }
+        }
+    }
 
-    open val q = MsgQue<MSG>()
-    override fun addPending(pending: Que<MSG>) = q.addPending(pending)
-    override fun takePending() = q.flushed()
+
+    fun handleMSG(cur: MSG) {
+        if (halted) return
+        cnt += 1
+
+        val res = update(cur, myModel)
+        Log.d(TAG, "Msg: $cur \n Model: $myModel \n ===> $res")
+        mc = res
+        if (cnt > 1000) throw RuntimeException("Do we have a loop $cnt, last msg was $cur")
+        if (!hasMessages()) {
+            cnt = 0
+            onQueIsEmpty()
+        }
+    }
+
+    open fun hasMessages(): Boolean {
+        return que.hasMessages(what)
+    }
+
+    open fun onQueIsEmpty() {
+    }
 
     // implementation vars - the latest state reference.
-    var mc: Pair<M, Que<MSG>>? = null
+    var mc: M? = null
 
     fun notStarted() = mc === null
     override fun onCreate() {
 
-        if (notStarted())
+        if (notStarted()) {
             start()
+            onStarted()
+        }
     }
+
+    open fun onStarted() {}
 
     var halted = false
     override fun onDestroy() {
@@ -318,74 +197,9 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
 
     // expose our immutable myModel
     val myModel: M get () {
-        val model = mc!!.first
-        return model
+        return mc!!
     }
 
-    // delegate to user update.
-    private fun updateWrap(msg: MSG, model: M): Pair<M, Que<MSG>> {
-        val res = update(msg, model)
-        print("Msg: $msg \n Model: $model \n ===> $res")
-        return res
-    }
-
-    // act with smsg
-    private fun cycleMsg(mc: Pair<M, Que<MSG>>, msg: MSG): Pair<M, Que<MSG>> {
-        val (model, cmdQue) = mc
-        val (updateModel, newQue) = updateWrap(msg, model)
-
-        return Pair<M, Que<MSG>>(updateModel, cmdQue + newQue)
-    }
-
-    private fun consumeFromQue(mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
-        val (model, cmdQue) = mc
-        val (msg, restQue) = cmdQue.split()
-        val mc2 = Pair(model, restQue)
-        val res = if (msg == null) mc2 else cycleMsg(mc2, msg)
-        return res
-    }
-
-    // no locks - done in single view thread
-    // it should be "locked" single inner loop and dispatch at a queryDate.
-
-
-    override fun dispatch() {
-        if (halted) return
-        val que = takePending()
-        // todo - fail early. add code for checking the thread identity
-        val newMC = mainCompute(que, mc!!)
-        mc = newMC
-    }
-
-    // sanity cnt - assert no concurrent modification.
-    private var cnt = 0
-
-    private fun mainCompute(que: Que<MSG>, mc: Pair<M, Que<MSG>>): Pair<M, Que<MSG>> {
-        if (cnt != 0) throw RuntimeException("concurrent innerloop! dispatch was called instead of post{dispatch}")
-
-        cnt += 1
-        val (model, que0) = mc
-        var mc2 = ret(model, que0 + que)
-        // consume commands
-        val act = block@ {
-            for (i in 0..1000) {
-                val que2 = mc2.second + takePending()
-                if (que2.lst.isEmpty()) {
-                    return@block false
-                }
-                mc2 = consumeFromQue(mc2)
-            }
-            return@block true
-        }
-
-
-        val tooLong = act()
-        if (tooLong) throw RuntimeException("Do we have a loop ?, too many commands " + mc2.second)
-
-        cnt -= 1
-
-        return mc2
-    }
 
     /**
      * If overriden - must be called to super
@@ -393,7 +207,6 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
     fun start(): StateEngine<M, MSG> {
         assert(mc == null) { "Check if started more then once." }
         mc = init()
-        dispatch()
         return this
     }
 }
@@ -421,9 +234,8 @@ abstract class ElmEngine<M, MSG> : StateEngine<M, MSG>(), Viewable<M> {
         model_viewed = model
     }
 
-    override fun dispatch() {
-        if (halted) return
-        super.dispatch()
+    override fun onQueIsEmpty() {
+        // update the view
         callView(myModel)
     }
 }
@@ -435,11 +247,10 @@ abstract class ElmEngine<M, MSG> : StateEngine<M, MSG>(), Viewable<M> {
 abstract class StateBase<M, MSG>(open val me: Context?) : StateEngine<M, MSG>() {
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
-    val mainHandler by lazy { Handler(me?.mainLooper) }
 
     // cross thread communication
     protected fun post(function: () -> Unit) {
-        mainHandler.post(function)
+        que.post(function)
     }
 }
 

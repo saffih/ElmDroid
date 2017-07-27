@@ -3,7 +3,6 @@ package elmdroid.elmdroid.example1.hello
 import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
 import kotlinx.android.synthetic.main.activity_helloworld.*
 import saffih.elmdroid.ElmChild
-import saffih.elmdroid.Que
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -52,57 +51,60 @@ sealed class Msg {
 }
 
 
-class Turtle(val me: ExampleHelloWorldActivity) :
+abstract class Turtle(val me: ExampleHelloWorldActivity) :
         ElmChild<Model, Msg>() {
-    override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model(), Msg.Init())
+    override fun init(): Model{
+        dispatch( Msg.Init())
+        return Model() 
     }
 
-    private fun update(msg: Msg.Init, model: MSpeed): Pair<MSpeed, Que<Msg>> {
-        return ret(model)
+    private fun update(msg: Msg.Init, model: MSpeed): MSpeed{
+        return model
 
     }
 
-    private fun update(msg: Msg.ChangeSpeed, model: MSpeed): Pair<MSpeed, Que<Msg>> {
+    private fun update(msg: Msg.ChangeSpeed, model: MSpeed): MSpeed{
         return when (msg) {
-            is Msg.ChangeSpeed.Increase -> ret(model.copy(speed = model.speed.next()))
-            is Msg.ChangeSpeed.Decrease -> ret(model.copy(speed = model.speed.prev()))
-            is Msg.ChangeSpeed.CycleUp -> ret(model.copy(speed = model.speed.cnext()))
-            is Msg.ChangeSpeed.Night -> ret(model.copy(speed = ESpeed.sleep))
+            is Msg.ChangeSpeed.Increase -> model.copy(speed = model.speed.next())
+            is Msg.ChangeSpeed.Decrease -> model.copy(speed = model.speed.prev())
+            is Msg.ChangeSpeed.CycleUp -> model.copy(speed = model.speed.cnext())
+            is Msg.ChangeSpeed.Night -> model.copy(speed = ESpeed.sleep)
         }
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun update(msg: Msg, model: Model)  : Model{
         return when (msg) {
             is Msg.Init -> {
-                val (m, c) = update(msg, model.speed)
-                val (mu, cu) = update(msg, model.ui)
-                ret(model.copy(speed = m, ui = mu), c + cu)
+                val m  = update(msg, model.speed)
+                val mu = update(msg, model.ui)
+                model.copy(speed = m, ui = mu)
             }
             is Msg.ChangeSpeed -> {
-                val (m, c) = update(msg, model.speed)
-                ret(model.copy(speed = m), c)
+                val m  = update(msg, model.speed)
+                model.copy(speed = m)
             }
             is Msg.UI -> {
-                val (m, c) = update(msg, model.ui)
-                ret(model.copy(ui = m), c)
+                val m  = update(msg, model.ui)
+                model.copy(ui = m)
             }
         }
     }
 
-    private fun update(msg: Msg.UI, model: MUIMode): Pair<MUIMode, Que<Msg>> {
-//        return ret(model)
+    private fun update(msg: Msg.UI, model: MUIMode)  : MUIMode{
+//        return model)
         return when (msg) {
 
-            is Msg.UI.ToggleClicked -> ret(model.copy(faster = !model.faster))
-            is Msg.UI.NextSpeedClicked -> ret(model,
-                    if (model.faster) Msg.ChangeSpeed.Increase() else Msg.ChangeSpeed.Decrease()
-            )
+            is Msg.UI.ToggleClicked -> model.copy(faster = !model.faster)
+            is Msg.UI.NextSpeedClicked -> {
+                dispatch ( if (model.faster)   Msg.ChangeSpeed.Increase() else Msg.ChangeSpeed.Decrease())
+                model
+            }
+
         }
     }
 
-    private fun update(msg: Msg.Init, model: MUIMode): Pair<MUIMode, Que<Msg>> {
-        return ret(model)
+    private fun update(msg: Msg.Init, model: MUIMode)  : MUIMode{
+        return model
     }
 
     override fun view(model: Model, pre: Model?) {

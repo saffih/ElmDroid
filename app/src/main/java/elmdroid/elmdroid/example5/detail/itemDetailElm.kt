@@ -11,7 +11,6 @@ import elmdroid.elmdroid.example5.ItemDetailActivity
 import elmdroid.elmdroid.example5.ItemDetailFragment
 import kotlinx.android.synthetic.main.activity_item_detail.*
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.Que
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -80,13 +79,13 @@ class ItemDetailElm(override val me: ItemDetailActivity) : ElmBase<Model, Msg>(m
         this.savedInstanceState = savedInstanceState
     }
 
-    override fun init(): Pair<Model, Que<Msg>> {
-        return ret(
-                Model().copy(hadSavedState = (savedInstanceState != null)),
-                Msg.Init())
+    override fun init():Model {
+        dispatch(Msg.Init())
+        return  Model().copy(hadSavedState = (savedInstanceState != null))
+                
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun update(msg: Msg, model: Model):Model {
         return when (msg) {
             is Msg.Init -> {
                 // savedInstanceState is non-null when there is fragment state
@@ -110,77 +109,79 @@ class ItemDetailElm(override val me: ItemDetailActivity) : ElmBase<Model, Msg>(m
                             .add(R.id.item_detail_container, fragment)
                             .commit()
                 }
-                ret(model)
+                model
             }
             is Msg.Fab -> {
-                val (activity, q) = update(msg, model.activity)
-                ret(model.copy(activity = activity), q)
+                val activity = update(msg, model.activity)
+                model.copy(activity = activity)
             }
             is Msg.Action -> {
-                val (activity, q) = update(msg, model.activity)
-                ret(model.copy(activity = activity), q)
+                val activity = update(msg, model.activity)
+                model.copy(activity = activity)
             }
             is Msg.Option -> {
-                val (activity, q) = update(msg, model.activity)
-                ret(model.copy(activity = activity), q)
+                val activity = update(msg, model.activity)
+                model.copy(activity = activity)
             }
         }
     }
 
-    private fun update(msg: Msg.Fab, model: MActivity): Pair<MActivity, Que<Msg>> {
+    private fun update(msg: Msg.Fab, model: MActivity):MActivity {
         return when (msg) {
             is Msg.Fab.Clicked -> {
-                val (mFab, q) = update(msg, model.fab)
-                ret(model.copy(fab = mFab), q)
+                val mFab = update(msg, model.fab)
+                model.copy(fab = mFab)
             }
         }
     }
 
-    private fun update(msg: Msg.Action, model: MActivity): Pair<MActivity, Que<Msg>> {
+    private fun update(msg: Msg.Action, model: MActivity):MActivity {
         return when (msg) {
             is Msg.Action.DoSomething -> {
-                ret(model)
+                model
             }
             is Msg.Action.UIToast -> {
                 msg.show(me)
-                ret(model)
+                model
             }
         }
     }
 
-    private fun update(msg: Msg.Option, model: MActivity): Pair<MActivity, Que<Msg>> {
+    private fun update(msg: Msg.Option, model: MActivity):MActivity {
         return when (msg) {
             is Msg.Option -> {
-                val (m, c) = update(msg, model.options)
-                ret(model.copy(options = m), c)
+                val m = update(msg, model.options)
+                model.copy(options = m)
             }
         }
     }
 
-    fun update(msg: Msg.Option, model: MOptions): Pair<MOptions, Que<Msg>> {
-//        return ret(myModel)
+    fun update(msg: Msg.Option, model: MOptions):MOptions {
+//        return myModel)
         return when (msg) {
 
             is Msg.Option.ItemSelected -> {
-                val (m, c) = update(msg, model.itemOption)
-                ret(model.copy(itemOption = m), c)
+                val m = update(msg, model.itemOption)
+                model.copy(itemOption = m)
             }
         }
     }
 
-    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
-//        return ret(myModel)
+    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption):MItemOption {
+//        return myModel)
         val itemOption = ItemOption.byId(msg.item.itemId)
-        return if (itemOption == null) ret(MItemOption(handled = false))
+        return if (itemOption == null) MItemOption(handled = false)
         else when (itemOption) {
-            ItemOption.settings -> ret(MItemOption(item = itemOption), Msg.Action.UIToast("Setting was clicked"))
+            ItemOption.settings -> {
+                dispatch(Msg.Action.UIToast("Setting was clicked"))
+                MItemOption(item = itemOption)}
         }
     }
 
-    private fun update(msg: Msg.Fab, model: MFab): Pair<MFab, Que<Msg>> {
+    private fun update(msg: Msg.Fab, model: MFab):MFab {
         return when (msg) {
             is Msg.Fab.Clicked -> {
-                ret(model.copy(clicked = msg.v))
+                model.copy(clicked = msg.v)
             }
         }
     }

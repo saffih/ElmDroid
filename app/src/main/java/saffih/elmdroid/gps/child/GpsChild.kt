@@ -33,9 +33,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.widget.Toast
-import saffih.elmdroid.Que
 import saffih.elmdroid.StateChild
-import saffih.elmdroid.activityCheckForPermission
 import saffih.elmdroid.post
 
 
@@ -99,57 +97,56 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
         LocationAdapter.unregisterAll()
     }
 
-    override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model(), Msg.Init())
+    override fun init(): Model{dispatch(Msg.Init())
+        return Model()
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun update(msg: Msg, model: Model): Model{
         return when (msg) {
             is Msg.Init -> {
-                ret(model)
+                model
             }
             is Msg.Response -> { // for the order sake  - just
                 return when (msg) {
                     is Msg.Response.Disabled -> {
                         toast("disabled ${msg}")
-                        ret(model.copy(enabled = false))
+                        model.copy(enabled = false)
                     }
                     is Msg.Response.Enabled -> {
                         toast("enabled ${msg}")
-                        ret(model.copy(enabled = true))
+                        model.copy(enabled = true)
                     }
                     is Msg.Response.StatusChanged -> {
                         toast("status changed ${msg}")
-                        ret(model)
+                        model
                     }
                     is Msg.Response.LocationChanged -> {
                         toast("location changed ${msg}")
-                        ret(model.copy(lastLocation = msg.location)
-                                , Msg.Api.Reply.NotifyLocation(msg.location)
-                        )
+                        dispatch(Msg.Api.Reply.NotifyLocation(msg.location))
+                        model.copy(lastLocation = msg.location)
                     }
                 }
             }
             is Msg.Api -> {
-                val (m, c) = update(msg, model.state)
-                ret(model.copy(state = m), c)
+                val m = update(msg, model.state)
+                model.copy(state = m)
             }
         }
     }
 
     abstract fun onLocationChanged(location: Location)
 
-    fun update(msg: Msg.Api, model: MState): Pair<MState, Que<Msg>> {
+    fun update(msg: Msg.Api, model: MState): MState{
         return when (msg) {
             is Msg.Api.Request.Location ->
                 if (model.listeners.isEmpty())
-                    ret(model.copy(listeners = startListenToGps()))
+                    model.copy(listeners = startListenToGps())
                 else
-                    ret(model)
+                    model
             is Msg.Api.Reply.NotifyLocation -> {
                 model.listeners.forEach { it.unregister() }
                 onLocationChanged(msg.location)
-                ret(model.copy(listeners = listOf()))
+                model.copy(listeners = listOf())
             }
         }
     }
@@ -227,10 +224,6 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
 
 
     companion object {
-        fun checkPermission(me: Activity, code: Int = 1) {
-            activityCheckForPermission(me, Manifest.permission.ACCESS_FINE_LOCATION, code)
-        }
-
         private val track = mutableSetOf<LocationAdapter>()
         fun unregisterAll() = track.toList().forEach { it.unregister() }
     }

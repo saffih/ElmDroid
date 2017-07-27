@@ -11,7 +11,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import elmdroid.elmdroid.R
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.Que
 import saffih.elmdroid.activityCheckForPermission
 import saffih.elmdroid.gps.GpsElmServiceClient
 import saffih.elmdroid.gps.GpsLocalService
@@ -149,50 +148,51 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         super.onDestroy()
     }
 
-    override fun init() = ret(Model(), Msg.Init)
+    override fun init():Model { dispatch(Msg.Init )
+        return Model()}
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun update(msg: Msg, model: Model):Model {
         return when (msg) {
             is Msg.Init -> {
-                ret(model)
+                model
             }
             is Msg.Activity -> {
-                val (activityModel, que) =
+                val activityModel =
                         update(msg, model.activity)
-                ret(model.copy(activity = activityModel), que)
+                model.copy(activity = activityModel)
             }
         }
     }
 
-    fun update(msg: Msg.Activity, model: MActivity): Pair<MActivity, Que<Msg>> {
+    fun update(msg: Msg.Activity, model: MActivity):MActivity {
         return when (msg) {
             is Msg.Activity.Map -> {
-                val (mapModel, que) = update(msg, model.mMap)
-                ret(model.copy(mMap = mapModel), que)
+                val mapModel= update(msg, model.mMap)
+                model.copy(mMap = mapModel)
             }
             is Msg.Activity.GotLocation -> {
                 val here = LatLng(msg.location.latitude, msg.location.longitude)
 
-                val que = listOf(
+                dispatch(listOf(
                         Msg.Activity.Map.AddMarker(MarkerOptions().position(here).title("you are here")),
-                        Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(here)))
-                ret(model, que)
+                        Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(here))))
+                model
             }
         }
     }
 
-    fun update(msg: Msg.Activity.Map, model: MMap): Pair<MMap, Que<Msg>> {
+    fun update(msg: Msg.Activity.Map, model: MMap):MMap {
         return when (msg) {
 
             is Msg.Activity.Map.Ready -> {
-                ret(model.copy(googleMap = msg.googleMap))
+                model.copy(googleMap = msg.googleMap)
             }
             is Msg.Activity.Map.AddMarker -> {
-                ret(model.copy(markers = model.markers + msg.markerOptions))
+                model.copy(markers = model.markers + msg.markerOptions)
 
             }
             is Msg.Activity.Map.MoveCamera -> {
-                ret(model.copy(camera = msg.cameraUpdate))
+                model.copy(camera = msg.cameraUpdate)
             }
         }
 

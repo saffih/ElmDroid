@@ -14,7 +14,6 @@ import android.widget.TextView
 import elmdroid.elmdroid.R
 import kotlinx.android.synthetic.main.activity_tabbed.*
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.Que
 
 /**
  * Copyright Joseph Hartal (Saffi)
@@ -62,32 +61,33 @@ data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null
 // TOs transfer objects
 
 class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
-    override fun init(): Pair<Model, Que<Msg>> {
-        return ret(Model(), Msg.Init())
+    override fun init():Model{
+        dispatch(Msg.Init())
+        return Model()
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun update(msg: Msg, model: Model) : Model {
         return when(msg) {
 
             is Msg.Init -> {
-                ret(model)
+                model
             }
             else -> {
-                val (m,q) = update(msg, model.activity)
-                ret(model.copy(activity=m), q)
+                val m= update(msg, model.activity)
+                model.copy(activity=m)
             }
 
         }
     }
 
 
-    fun update(msg: Msg, model: MActivity): Pair<MActivity, Que<Msg>> {
-//        return ret(myModel)
+    fun update(msg: Msg, model: MActivity) : MActivity {
+//        return myModel)
 
         return when(msg) {
 
             is Msg.Init -> {
-                ret(model)
+                model
             }
             is Msg.Fab.Clicked -> {
                 Snackbar.make(msg.view, "Goto original studio generated activity", Snackbar.LENGTH_LONG)
@@ -95,34 +95,34 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
                             me.startActivity(
                                     Intent(me, TabbedActivityOrig::class.java))
                         }).show()
-                ret(model)
+                model
             }
 
             is Msg.Options-> {
-                val (m,q) = update(msg, model.options)
-                ret(model.copy(options= m), q)
+                val m = update(msg, model.options)
+                model.copy(options= m)
             }
-            is Msg.Action.GotOrig ->    ret(model)
+            is Msg.Action.GotOrig -> model
         }
 
 
     }
 
-    private fun update(msg: Msg.Options, model: MOptions): Pair<MOptions, Que<Msg>> {
+    private fun update(msg: Msg.Options, model: MOptions) : MOptions {
         return when(msg) {
             is Msg.Options.ItemSelected -> {
-                val (m, c) = update(msg, model.itemOption)
-                ret(model.copy(itemOption = m), c)
+                val m = update(msg, model.itemOption)
+                model.copy(itemOption = m)
             }
         }
     }
 
-    fun update(msg: Msg.Options.ItemSelected, model: MItemOption): Pair<MItemOption, Que<Msg>> {
+    fun update(msg: Msg.Options.ItemSelected, model: MItemOption) : MItemOption {
         val selected = ItemOption.byId(msg.item.itemId)
         if (selected == null) {
-            return ret(MItemOption(handled = false))
+            return MItemOption(handled = false)
         } else {
-            return ret(MItemOption(item = selected))
+            return MItemOption(item = selected)
         }
     }
 

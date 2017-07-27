@@ -25,8 +25,6 @@ package saffih.elmdroid.sms
 import android.app.Service
 import android.os.Message
 import android.telephony.SmsMessage
-import saffih.elmdroid.Que
-import saffih.elmdroid.bindState
 import saffih.elmdroid.service.ElmMessengerService
 import saffih.elmdroid.sms.child.MSms
 import saffih.elmdroid.sms.child.SmsChild
@@ -109,33 +107,37 @@ class SmsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         super.onDestroy()
     }
 
-    private val child = bindState(object : SmsChild(me) {
+    private val child = object : SmsChild(me) {
+        override fun handleMSG(cur: saffih.elmdroid.sms.child.Msg) {
+            dispatch( Msg.Child(cur) )
+        }
+
         override fun onSmsArrived(sms: List<SmsMessage>) {
             sms.forEach { dispatchReply(Msg.replySmsArrived(it)) }
         }
-    }) { Msg.Child(it) }
-
-    override fun init(): Pair<Model, Que<Msg>> {
-        val (m, c) = child.init()
-        return ret(Model().copy(child = m), c.map { Msg.Child(it) })
     }
 
-    override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+    override fun init():  Model {
+        val  m = child.init()
+        return  Model().copy(child = m)
+    }
+
+    override fun update(msg: Msg, model: Model):  Model {
         return when (msg) {
             is Msg.Child -> {
-                val (m, c) = child.update(msg.sms, model.child)
-                return ret(model.copy(child = m), c)
+                val  m = child.update(msg.sms, model.child)
+                return  model.copy(child = m)
 
             }
             is Msg.Api.Request.SmsSend -> {
-                child.impl.sendSms(msg.data)
+                child.sendSms(msg.data)
                 // currently we do not track state.
-                ret(model)
+                 model
             }
             is Msg.Api.Reply -> {
                 // reply processed
                 // currently we do not track the state
-                ret(model)
+                 model
             }
         }
     }

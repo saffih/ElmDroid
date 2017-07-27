@@ -1,11 +1,9 @@
-
-
 package elmdroid.elmdroid
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.Que
+import saffih.elmdroid.MsgQue
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -19,11 +17,13 @@ class FiboElmBaseTest {
     fun testFibo() {
         val app = App()
         app.onCreate()
-        assertEquals(app.last(), 1)
+        assertEquals(-100, app.last()) //before reset
         app.dispatch(msg = Msg.Next())
-        assertEquals(app.last(), 1)
+        assertEquals(1,app.last())
         app.dispatch(msg = Msg.Next())
-        assertEquals(app.last(), 2)
+        assertEquals(1,app.last())
+        app.dispatch(msg = Msg.Next())
+        assertEquals(2,app.last())
         app.dispatch(msg = Msg.Next())
         assertEquals(app.last(), 3)
         app.dispatch(msg = Msg.Next())
@@ -32,11 +32,14 @@ class FiboElmBaseTest {
         assertEquals(app.last(), 8)
         app.dispatch(msg = Msg.Next())
         assertEquals(app.last(), 13)
+        // there is one not consumed but we do reset
 
         app.dispatch(msg = Msg.Reset())
         app.dispatch(msg = Msg.Next(4))
+        app.consume() // we wait...
         assertEquals(5, app.last())
         app.dispatch(msg = Msg.Reset())
+        app.consume() // we wait...
         assertEquals(app.last(), 1)
 
     }
@@ -52,38 +55,78 @@ class FiboElmBaseTest {
 
 
     class App : ElmBase<Model, Msg>(me = null) {
-        override fun init() =
-                //                ret(Model(A(0),B(1)))
-                ret(Model(), Msg.Reset())
+        var l = listOf<Msg>()
+
+        override val que: MsgQue<Msg>
+            get() = object : MsgQue<Msg>(null, 0) {
+                override fun handleMSG(cur: Msg) {
+                    this@App.handleMSG(cur)
+                }
+
+                override fun dispatch(msg: Msg) {
+                    l = l + msg
+                    consume()
+
+                }
+            }
+        var busy = false
+        fun consume() {
+            if (busy) return
+            busy = true
+            while (true) {
+                val l2 = l
+                l = listOf()
+                if (l2.isEmpty()) break
+                l2.map {
+                    handleMSG(it)
+                }
+            }
+            busy = false
+        }
+
+        override fun dispatch(msg: Msg) {
+            // consume if first if not just append
+            consume()
+            l += msg
+        }
+
+        override fun hasMessages(): Boolean {
+            return l.isNotEmpty()
+        }
+
+        override fun init(): Model {
+            //                Model(A(0),B(1)))
+            dispatch(Msg.Reset())
+            return Model()
+        }
 
         var res: Int = -1
 
         fun last() = res
 
-        override fun update(msg: Msg, model: Model): Pair<Model, Que<Msg>> {
+        override fun update(msg: Msg, model: Model): Model {
             return when (msg) {
                 is Msg.Next -> {
                     if (msg.steps <= 0) {
-                        ret(model)
-                    }
-                    else {
-                        ret(model, noneQue + Msg.Update(model)+Msg.Next(msg.steps-1))
+                        model
+                    } else {
+                        dispatch(Msg.Update(model))
+                        dispatch(Msg.Next(msg.steps - 1))
+                        model
                     }
                 }
                 is Msg.Update -> {
-                    val (modelA, couldBeCommandsFromA) = update(msg, model.a)
-                    val (modelB, couldBeCommandsFromB) = update(msg, model.b)
-                    ret(model.copy(a=modelA, b=modelB),
-                            // just showing that we can concatenate lots of msgs after noneQue
-                            noneQue + couldBeCommandsFromA + couldBeCommandsFromB)
+                    val modelA = update(msg, model.a)
+                    val modelB = update(msg, model.b)
+                    model.copy(a = modelA, b = modelB)
                 }
-                is Msg.Reset -> ret(Model(a = A(0), b = B(1)))
+                is Msg.Reset -> Model(a = A(0), b = B(1))
             }
         }
 
-        private fun update(msg: Msg.Update, model: A)  = ret(model.copy(v = msg.model.b.v))
+        private fun update(msg: Msg.Update, model: A) = model.copy(v = msg.model.b.v)
 
-        private fun update(msg: Msg.Update, model: B) = ret(model.copy(v = msg.model.a.v + model.v))
+        private fun update(msg: Msg.Update, model: B) = model.copy(v = msg.model.a.v + model.v)
 
 
         override fun view(model: Model, pre: Model?) {
