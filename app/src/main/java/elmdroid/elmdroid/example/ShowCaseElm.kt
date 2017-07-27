@@ -55,8 +55,6 @@ enum class ItemOption(val id: Int) {
 }
 
 
-
-
 sealed class Msg {
     class Init : Msg()
     sealed class Fab : Msg() {
@@ -100,15 +98,6 @@ data class MDrawer(val i: DrawerOption = DrawerOption.closed)
 data class MNavOption(val toDisplay: Boolean = true, val nav: NavOption? = null)
 data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
-//sealed class Action:Msg(){
-//    class GotOrig :Action()
-//}
-
-
-/**
- * Types used as in message properties
- */
-//class ViewId(val id:Int)
 
 sealed class DrawerOption {
     object opened : DrawerOption()
@@ -119,7 +108,7 @@ sealed class DrawerOption {
 class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         NavigationView.OnNavigationItemSelectedListener {
 
-    override fun init(): Model{
+    override fun init(): Model {
         dispatch(Msg.Init())
         return Model()
     }
@@ -136,8 +125,7 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         }
     }
 
-    fun update(msg: Msg, model: MActivity): MActivity{
-//        return myModel)
+    fun update(msg: Msg, model: MActivity): MActivity {
         return when (msg) {
             is Msg.Init -> {
                 model
@@ -148,7 +136,7 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
                 model
             }
             is Msg.Option -> {
-                val m= update(msg, model.options)
+                val m = update(msg, model.options)
                 model.copy(options = m)
             }
             is Msg.Action.OpenTwitter -> {
@@ -163,10 +151,10 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         }
     }
 
-    fun update(msg: Msg.Option, model: MOptions): MOptions{
+    fun update(msg: Msg.Option, model: MOptions): MOptions {
         return when (msg) {
             is Msg.Option.ItemSelected -> {
-                val m= update(msg, model.itemOption)
+                val m = update(msg, model.itemOption)
                 model.copy(itemOption = m)
             }
             is Msg.Option.Navigation -> {
@@ -180,7 +168,7 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         }
     }
 
-    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): MItemOption{
+    private fun update(msg: Msg.Option.ItemSelected, model: MItemOption): MItemOption {
 //         return myModel)
         val item = msg.item
         // Handle action bar item clicks here. The action bar will
@@ -194,14 +182,13 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         }
     }
 
-    private fun update(msg: Msg.Option.Navigation, model: MNavOption): MNavOption{
-        //        return myModel)
+    private fun update(msg: Msg.Option.Navigation, model: MNavOption): MNavOption {
         val item = msg.item
         // Handle navigation view item clicks here.
         val id = item.itemId
         val nav = NavOption.byId(id)
         return if (nav == null) {
-             dispatch(Msg.Option.Drawer(DrawerOption.closed))
+            dispatch(Msg.Option.Drawer(DrawerOption.closed))
             model.copy(nav = null)
         } else {
             when (nav) {
@@ -225,7 +212,7 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         }
     }
 
-    fun update(msg: Msg.Option.Drawer, model: MDrawer): MDrawer{
+    fun update(msg: Msg.Option.Drawer, model: MDrawer): MDrawer {
         return when (msg.item) {
             DrawerOption.opened -> model.copy(i = DrawerOption.opened)
             DrawerOption.closed -> model.copy(i = DrawerOption.closed)
@@ -310,12 +297,12 @@ class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
             val toggle = ActionBarDrawerToggle(
                     me, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
             drawer.addDrawerListener(toggle)
-            val openListener = OpenedDrawerListener({
+            val openListener = OpenedDrawerListener {
                 dispatch(Msg.Option.Drawer(DrawerOption.opened))
-            })
-            val closeListener = ClosedDrawerListener({
+            }
+            val closeListener = ClosedDrawerListener {
                 dispatch(Msg.Option.Drawer(DrawerOption.closed))
-            })
+            }
             closeListener.registerAt(drawer)
             openListener.registerAt(drawer)
             toggle.syncState()

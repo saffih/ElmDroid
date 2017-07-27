@@ -54,21 +54,19 @@ abstract class SmsChild(val me: Context) : StateChild<Model, Msg>() {
 
     //    for services
     override fun onCreate() {
-//        super.onCreate()
         smsReceiver.meRegister(me)
     }
 
     override fun onDestroy() {
-//        super.onDestroy()
         smsReceiver.meUnregister(me)
     }
 
-    override fun init(): Model{
-         dispatch(Msg.Init())
+    override fun init(): Model {
+        dispatch(Msg.Init())
         return Model()
     }
 
-    override fun update(msg: Msg, model: Model): Model{
+    override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
             is Msg.Init -> {
                 model

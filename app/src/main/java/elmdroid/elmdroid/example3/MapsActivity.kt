@@ -23,7 +23,6 @@ import saffih.elmdroid.service.client.Msg as ClientServiceMsg
 
 
 class MapsActivity : FragmentActivity() {
-
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -148,10 +147,12 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         super.onDestroy()
     }
 
-    override fun init():Model { dispatch(Msg.Init )
-        return Model()}
+    override fun init(): Model {
+        dispatch(Msg.Init)
+        return Model()
+    }
 
-    override fun update(msg: Msg, model: Model):Model {
+    override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
             is Msg.Init -> {
                 model
@@ -164,24 +165,26 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
         }
     }
 
-    fun update(msg: Msg.Activity, model: MActivity):MActivity {
+    fun update(msg: Msg.Activity, model: MActivity): MActivity {
         return when (msg) {
             is Msg.Activity.Map -> {
-                val mapModel= update(msg, model.mMap)
+                val mapModel = update(msg, model.mMap)
                 model.copy(mMap = mapModel)
             }
             is Msg.Activity.GotLocation -> {
-                val here = LatLng(msg.location.latitude, msg.location.longitude)
-
-                dispatch(listOf(
-                        Msg.Activity.Map.AddMarker(MarkerOptions().position(here).title("you are here")),
-                        Msg.Activity.Map.MoveCamera(CameraUpdateFactory.newLatLng(here))))
-                model
+                val m = update(msg, model.mMap)
+                model.copy(mMap = m)
             }
         }
     }
 
-    fun update(msg: Msg.Activity.Map, model: MMap):MMap {
+    private fun update(msg: Msg.Activity.GotLocation, model: MMap): MMap {
+        val here = LatLng(msg.location.latitude, msg.location.longitude)
+        return model.copy(markers = model.markers + MarkerOptions().position(here).title("you are here"),
+                camera = (CameraUpdateFactory.newLatLng(here)))
+    }
+
+    fun update(msg: Msg.Activity.Map, model: MMap): MMap {
         return when (msg) {
 
             is Msg.Activity.Map.Ready -> {
@@ -189,13 +192,11 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
             }
             is Msg.Activity.Map.AddMarker -> {
                 model.copy(markers = model.markers + msg.markerOptions)
-
             }
             is Msg.Activity.Map.MoveCamera -> {
                 model.copy(camera = msg.cameraUpdate)
             }
         }
-
     }
 
     override fun view(model: Model, pre: Model?) {
@@ -221,12 +222,12 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
             mapFragment.getMapAsync(this)
         }
         checkView(setup, model, pre) {
-            checkView({}, model.markers, pre?.markers){
+            checkView({}, model.markers, pre?.markers) {
                 model.markers.forEach {
                     model.googleMap!!.addMarker(it)
                 }
             }
-            checkView({}, model.camera, pre?.camera){
+            checkView({}, model.camera, pre?.camera) {
                 model.googleMap!!.moveCamera(model.camera)
             }
         }

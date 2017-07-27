@@ -156,8 +156,7 @@ class ElmApp(override val me: DrawerExample) : ElmBase<Model, Msg>(me),
             }
 
             is Msg.Action.GotOrig -> {
-                me.startActivity(
-                        Intent(me, Example2OrigDrawer::class.java))
+                me.startActivity(Intent(me, Example2OrigDrawer::class.java))
                 model
             }
             is Msg.Action.UIToast -> {
@@ -191,7 +190,6 @@ class ElmApp(override val me: DrawerExample) : ElmBase<Model, Msg>(me),
     }
 
     private fun update(msg: Msg.Option.Navigation, model: MNavOption): MNavOption {
-        //        return myModel)
         val item = msg.item
         // Handle navigation view item clicks here.
         val id = item.itemId

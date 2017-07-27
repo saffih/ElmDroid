@@ -70,13 +70,17 @@ class GpsService : Service() {
 //  an exmaple for local service
 // app as annonymous inner class
 class GpsLocalService : LocalService() {
-    private fun  handleMSG(cur: saffih.elmdroid.gps.child.Msg) {app.dispatch(cur)}
+    private fun handleMSG(cur: saffih.elmdroid.gps.child.Msg) {
+        app.dispatch(cur)
+    }
+
     // service loop app
     val app = object : StateBase<GpsLocalServiceModel, GpsLocalServiceMsg>(this) {
         val gps =
                 object : GpsChild(this@GpsLocalService) {
                     override fun handleMSG(cur: saffih.elmdroid.gps.child.Msg) {
-this@GpsLocalService.handleMSG(cur)                    }
+                        this@GpsLocalService.handleMSG(cur)
+                    }
 
                     override fun onLocationChanged(location: Location) {
                         broadcast(location)

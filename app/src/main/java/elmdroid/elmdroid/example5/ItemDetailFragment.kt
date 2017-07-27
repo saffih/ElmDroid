@@ -22,7 +22,7 @@ import kotlinx.android.synthetic.main.item_detail.view.*
  */
 class ItemDetailFragment : Fragment() {
 
-    private var  mItem: MItem?=null
+    private var mItem: MItem? = null
 
     /**
      * The dummy content this fragment is presenting.
@@ -40,7 +40,7 @@ class ItemDetailFragment : Fragment() {
 
             val activity = this.activity as ItemDetailActivity
             val appBarLayout = activity.toolbar_layout
-                appBarLayout.title = mItem!!.content
+            appBarLayout.title = mItem!!.content
         }
     }
 

@@ -31,8 +31,8 @@
         app:srcCompat="@android:drawable/ic_dialog_email" />
 
     <us.feras.mdv.MarkdownView
+        android:id="@+id/markdownView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/markdownView" />
+        android:layout_height="match_parent" />
 
 </android.support.design.widget.CoordinatorLayout>

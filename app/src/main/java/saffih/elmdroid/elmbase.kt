@@ -47,7 +47,7 @@ abstract class MsgQue<MSG>(looper: Looper?, val what: Int) : Handler(looper) {
         handleMSG(cur)
     }
 
-    abstract fun handleMSG(cur: MSG);
+    abstract fun handleMSG(cur: MSG)
 
     open fun dispatch(msg: MSG) {
         val m = Message.obtain(null, what, msg)
@@ -136,11 +136,12 @@ abstract class ElmChildAdapter<M, MSG>(val delegate: ElmPattern<M, MSG>) : ElmCh
     override fun update(msg: MSG, model: M) = delegate.update(msg, model)
     override fun view(model: M, pre: M?) = delegate.view(model, pre)
 }
-private val  TAG: String=StateEngine::class.java.name
+
+private val TAG: String = StateEngine::class.java.name
 
 
 abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
-    var cnt = 0;
+    var cnt = 0
     open val what: Int = 1
     open val looper: Looper get () {
         return Looper.getMainLooper()
@@ -259,6 +260,19 @@ fun Context.post(posted: () -> Unit): Boolean {
     return Handler(this.mainLooper).post(posted)
 }
 
+fun Context.toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
+    val h = Handler(this.mainLooper)
+    h.post({ Toast.makeText(this, txt, duration).show() })
+}
+
+fun Context.postDelayed(r: () -> Unit, delayMillis: Long) = Handler(this.mainLooper).
+        postDelayed(r, delayMillis)
+
+
+fun Context.removeCallbacks(r: () -> Unit) = Handler(this.mainLooper).
+        removeCallbacks(r)
+
+
 /**
  * For Activities having main Handler and dispatch.
  */
@@ -268,12 +282,23 @@ abstract class ElmBase<M, MSG>(open val me: Context?) : ElmEngine<M, MSG>() {
     // it is lazy since it is created after the view exist.
     val mainHandler by lazy { Handler(me?.mainLooper) }
 
-    // cross thread communication
+    //     cross thread communication
     protected fun post(function: () -> Unit) {
         mainHandler.post(function)
     }
 
 }
+
+
+private class Memoize1<in T, out R>(val f: (T) -> R) : (T) -> R {
+    private val values = mutableMapOf<T, R>()
+    override fun invoke(x: T): R {
+        return values.getOrPut(x, { f(x) })
+    }
+}
+
+fun <T, R> ((T) -> R).memoize(): (T) -> R = Memoize1(this)
+
 
 // todo should use list of all perms
 fun activityCheckForPermission(me: Activity, perm: String, code: Int,
@@ -322,4 +347,36 @@ fun Activity.activityCheckForPermission(perm: List<String>, code: Int): Boolean 
     val recheck = missing.map { ContextCompat.checkSelfPermission(me, it) != PackageManager.PERMISSION_GRANTED }.all { it == true }
     return recheck
 
+}
+
+fun Context.permissionGranted(perm: String) =
+        ContextCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED
+
+fun Context.permissionsMissing(perms: List<String>) =
+        perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+
+
+abstract class RegisterHelper(val context: Context, val retryInterval: Long = 1000) {
+
+    private val registerHook = { register() }
+
+
+    abstract val requiredPermissions: List<String>
+
+    fun register() {
+        if (context.permissionsMissing(requiredPermissions).isEmpty()) {
+            onRegister()
+        } else {
+            context.postDelayed(registerHook, retryInterval)
+        }
+    }
+
+    abstract protected fun onRegister()
+
+    fun unregister() {
+        context.removeCallbacks(registerHook)
+        onUnregister()
+    }
+
+    abstract protected fun onUnregister()
 }

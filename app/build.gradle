@@ -6,20 +6,21 @@ apply plugin: 'kotlin-android-extensions'
 def versionPropsFile = file('version.properties')
 def bumpVersion = { v ->
     def Properties versionProps = new Properties()
-    def versionCode=v
-    if (v==null) {
+    def versionCode = v
+    if (v == null) {
         versionProps.load(new FileInputStream(versionPropsFile))
         versionCode = versionProps['VERSION_CODE'].toInteger() + 1
     }
     versionProps['VERSION_CODE'] = versionCode.toString()
     versionProps.store(versionPropsFile.newWriter(), null)
 }
+
 if (!versionPropsFile.canRead()) {
     bumpVersion(0)
 }
 
 task bumpVersionTask {
-    bumpVersion()
+//    bumpVersion()
 }
 
 def getVersionCode = { ->
@@ -34,9 +35,11 @@ def getVersionCode = { ->
     return versionCode
 }
 
+ext.sdk_lib_version = '25.3.1'
+
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    buildToolsVersion '25.0.3'
     defaultConfig {
         applicationId "elmdroid.elmdroid"
         minSdkVersion 15
@@ -51,6 +54,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
 }
 
 dependencies {
@@ -59,18 +66,29 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     //    testCompile 'org.mockito:mockito-core:1.10.19'
-//    testCompile 'io.kotlintest:kotlintest:2.0.1'
-    compile 'org.jetbrains.kotlin:kotlin-stdlib-jre7:1.1.2-2'
-    compile 'com.android.support:appcompat-v7:25.3.1'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
-    compile 'com.android.support:design:25.3.1'
-    compile 'com.google.android.gms:play-services-maps:11.0.4'
-    compile 'com.android.support:support-v4:25.3.1'
-    compile 'com.android.support:recyclerview-v7:25.3.1'
-    compile 'us.feras.mdv:markdownview:1.1.0'
-    testCompile 'junit:junit:4.12'
-    bumpVersionTask
+    //    compile 'us.feras.mdv:markdownview:1.1.0'
+    //    compile project(':persist-release')
+    compile "com.android.support:appcompat-v7:$sdk_lib_version"
+    compile "com.android.support:cardview-v7:$sdk_lib_version"
+    compile "com.android.support:design:$sdk_lib_version"
+    compile "com.android.support:gridlayout-v7:$sdk_lib_version"
+    compile "com.android.support:recyclerview-v7:$sdk_lib_version"
+    compile "com.android.support:support-v4:$sdk_lib_version"
+    compile "com.android.support:support-vector-drawable:$sdk_lib_version"
 
+//    compile 'io.requery:sqlite-android:3.18.0'
+
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+
+    compile 'us.feras.mdv:markdownview:1.1.0'
+
+    compile 'com.google.android.gms:play-services-maps:10.2.6'
+    compile 'com.google.android.gms:play-services-location:10.2.6'
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.14'
+
+    testCompile 'junit:junit:4.12'
 }
 repositories {
     mavenCentral()

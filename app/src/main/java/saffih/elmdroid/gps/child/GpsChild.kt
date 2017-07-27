@@ -27,14 +27,15 @@ package saffih.elmdroid.gps.child
 
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.widget.Toast
+import android.support.v7.app.AppCompatActivity
+import saffih.elmdroid.RegisterHelper
 import saffih.elmdroid.StateChild
 import saffih.elmdroid.post
+import saffih.elmdroid.toast
 
 
 sealed class Msg {
@@ -97,11 +98,13 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
         LocationAdapter.unregisterAll()
     }
 
-    override fun init(): Model{dispatch(Msg.Init())
+    override fun init(): Model {
+        dispatch(Msg.Init())
         return Model()
     }
 
-    override fun update(msg: Msg, model: Model): Model{
+    private fun toast(txt: String) = me.toast(txt)
+    override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
             is Msg.Init -> {
                 model
@@ -136,7 +139,7 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
 
     abstract fun onLocationChanged(location: Location)
 
-    fun update(msg: Msg.Api, model: MState): MState{
+    fun update(msg: Msg.Api, model: MState): MState {
         return when (msg) {
             is Msg.Api.Request.Location ->
                 if (model.listeners.isEmpty())
@@ -150,12 +153,6 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
             }
         }
     }
-
-
-    fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
-        Toast.makeText(me, txt, duration).show()
-    }
-
 
     fun startListenToGps(): List<LocationAdapter> {
         val lm: LocationManager = me.getSystemService(Context.LOCATION_SERVICE)
@@ -189,6 +186,32 @@ abstract class GpsChild(val me: Context) : StateChild<Model, Msg>() {
 
 }
 
+abstract class LocationRegisterHelper(context: Context,
+                                      private val minTime: Long = 5000L,
+                                      private val minDistance: Float = 0.01f) : RegisterHelper(context) {
+    val locationManager by lazy {
+        context.getSystemService(AppCompatActivity.LOCATION_SERVICE) as LocationManager
+    }
+
+    private val locListener by lazy {
+        LocationChangedListener(locationManager, {
+            loc ->
+            onLocationChanged(loc)
+        })
+    }
+
+    override val requiredPermissions = listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    override fun onRegister() {
+        locListener.registerAt(minTime, minDistance)
+    }
+
+    override fun onUnregister() {
+        locListener.unregister()
+    }
+
+    abstract fun onLocationChanged(loc: Location)
+}
+
 open class LocationAdapter(val locationManager: LocationManager) : LocationListener {
 
     override fun onLocationChanged(location: Location?) {
@@ -203,9 +226,7 @@ open class LocationAdapter(val locationManager: LocationManager) : LocationListe
     override fun onProviderDisabled(provider: String?) {
     }
 
-    fun registerAt() {
-        val minTime: Long = 5000L
-        val minDistance: Float = 10.toFloat()
+    fun registerAt(minTime: Long = 5000L, minDistance: Float = 10.toFloat()) {
         locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER, minTime, minDistance, this)
         synchronized(track) {
@@ -261,5 +282,3 @@ open class LocationChangedListener(
         f(location!!)
     }
 }
-
-

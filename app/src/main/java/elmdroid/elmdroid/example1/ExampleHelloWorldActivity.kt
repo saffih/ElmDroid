@@ -60,18 +60,18 @@ class ElmApp(override val me: ExampleHelloWorldActivity) : ElmBase<Model, Msg>(m
                 post { dispatch(Msg.Activity.Greeted(Greeting(sms.messageBody))) }
     }
 
-    val turtle = object:Turtle(me) {
+    val turtle = object : Turtle(me) {
         override fun handleMSG(cur: elmdroid.elmdroid.example1.hello.Msg) {
             dispatch(Msg.Activity.Turtle(cur))
         }
     }
 
-    override fun init():Model {
+    override fun init(): Model {
         dispatch(Msg.Init)
         return Model()
     }
 
-        override fun update(msg: Msg, model: Model): Model{
+    override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
             is Msg.Init -> {
                 val m = update(msg, model.activity)
@@ -86,12 +86,12 @@ class ElmApp(override val me: ExampleHelloWorldActivity) : ElmBase<Model, Msg>(m
         }
     }
 
-    private fun update(msg: Msg.Init, model: MActivity): MActivity{
+    private fun update(msg: Msg.Init, model: MActivity): MActivity {
         val m = turtle.update(HelloMsg.Init(), model.turtle)
         return model.copy(turtle = m)
     }
 
-    fun update(msg: Msg.Activity, model: MActivity): MActivity{
+    fun update(msg: Msg.Activity, model: MActivity): MActivity {
         return when (msg) {
             is Msg.Activity.Greeted -> {
                 model.copy(greeting = msg.v)
@@ -142,7 +142,7 @@ class ElmApp(override val me: ExampleHelloWorldActivity) : ElmBase<Model, Msg>(m
         }
         checkView(setup, model, pre) {
             val view = me.greetingText as TextView
-            me.greetingText.text.clear();
+            me.greetingText.text.clear()
             me.greetingText.text.append(model.greet)
         }
     }
@@ -171,17 +171,13 @@ class ExampleHelloWorldActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         app.onResume()
-
-
     }
 
     override fun onPause() {
         super.onPause()
         app.onPause()
-
     }
 
-    //
     override fun onDestroy() {
         app.onDestroy()
         super.onDestroy()
@@ -191,16 +187,6 @@ class ExampleHelloWorldActivity : AppCompatActivity() {
         super.onStart()
         app.onCreate()
     }
-//
-//    override fun onResumeFragments() {
-//        super.onResumeFragments()
-//    }
-//
-//
-//
-//    override fun onStop() {
-//        super.onStop()
-//    }
 }
 
 

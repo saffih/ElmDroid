@@ -109,7 +109,7 @@ class SmsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
 
     private val child = object : SmsChild(me) {
         override fun handleMSG(cur: saffih.elmdroid.sms.child.Msg) {
-            dispatch( Msg.Child(cur) )
+            dispatch(Msg.Child(cur))
         }
 
         override fun onSmsArrived(sms: List<SmsMessage>) {
@@ -117,27 +117,27 @@ class SmsElm(me: Service) : ElmMessengerService<Model, Msg, Msg.Api>(me,
         }
     }
 
-    override fun init():  Model {
-        val  m = child.init()
-        return  Model().copy(child = m)
+    override fun init(): Model {
+        val m = child.init()
+        return Model().copy(child = m)
     }
 
-    override fun update(msg: Msg, model: Model):  Model {
+    override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
             is Msg.Child -> {
-                val  m = child.update(msg.sms, model.child)
-                return  model.copy(child = m)
+                val m = child.update(msg.sms, model.child)
+                return model.copy(child = m)
 
             }
             is Msg.Api.Request.SmsSend -> {
                 child.sendSms(msg.data)
                 // currently we do not track state.
-                 model
+                model
             }
             is Msg.Api.Reply -> {
                 // reply processed
                 // currently we do not track the state
-                 model
+                model
             }
         }
     }

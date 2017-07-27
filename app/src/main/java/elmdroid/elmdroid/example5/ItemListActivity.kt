@@ -23,16 +23,17 @@ class ItemListActivity : AppCompatActivity() {
 
     // expose myModel the details.
     val model get () = app.myModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        itemListActivity=this
+        itemListActivity = this
 
         app.onCreate()
     }
 
     companion object {
         // share the myModel
-        var itemListActivity:ItemListActivity? =null
+        var itemListActivity: ItemListActivity? = null
 
     }
 

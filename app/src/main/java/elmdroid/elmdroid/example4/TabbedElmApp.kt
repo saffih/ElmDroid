@@ -29,66 +29,62 @@ enum class ItemOption(val id: Int) {
     }
 }
 
-sealed class  Msg {
+sealed class Msg {
     class Init : Msg()
-    sealed class Fab: Msg() {
+    sealed class Fab : Msg() {
         class Clicked(val view: View) : Fab()
     }
 
-    sealed class Options: Msg(){
+    sealed class Options : Msg() {
         class ItemSelected(val item: MenuItem) : Options()
     }
-    sealed class Action:Msg(){
-        class GotOrig :Action()
+
+    sealed class Action : Msg() {
+        class GotOrig : Action()
     }
 }
 
-data class Model(val activity:MActivity = MActivity())
+data class Model(val activity: MActivity = MActivity())
 data class MActivity(
         val pager: MViewPager = MViewPager(),
-        val fab:MFab = MFab(),
-        val toolbar: MToolbar= MToolbar(),
-        val options: MOptions= MOptions())
+        val fab: MFab = MFab(),
+        val toolbar: MToolbar = MToolbar(),
+        val options: MOptions = MOptions())
 
 data class MOptions(val itemOption: MItemOption = MItemOption(false))
-data class MViewPager(val i:Int = 0)
-data class MToolbar(val i:Int = 0)
-data class MFab(val snackbar:MSnackbar = MSnackbar())
-data class MSnackbar(val i:Int=0)
+data class MViewPager(val i: Int = 0)
+data class MToolbar(val i: Int = 0)
+data class MFab(val snackbar: MSnackbar = MSnackbar())
+data class MSnackbar(val i: Int = 0)
 data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 
 // TOs transfer objects
 
-class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
-    override fun init():Model{
+class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me) {
+    override fun init(): Model {
         dispatch(Msg.Init())
         return Model()
     }
 
-    override fun update(msg: Msg, model: Model) : Model {
-        return when(msg) {
+    override fun update(msg: Msg, model: Model): Model {
+        return when (msg) {
 
             is Msg.Init -> {
                 model
             }
             else -> {
-                val m= update(msg, model.activity)
-                model.copy(activity=m)
+                val m = update(msg, model.activity)
+                model.copy(activity = m)
             }
 
         }
     }
 
 
-    fun update(msg: Msg, model: MActivity) : MActivity {
-//        return myModel)
-
-        return when(msg) {
-
-            is Msg.Init -> {
-                model
-            }
+    fun update(msg: Msg, model: MActivity): MActivity {
+        return when (msg) {
+            is Msg.Init -> model
             is Msg.Fab.Clicked -> {
                 Snackbar.make(msg.view, "Goto original studio generated activity", Snackbar.LENGTH_LONG)
                         .setAction("Goto", {
@@ -98,18 +94,16 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
                 model
             }
 
-            is Msg.Options-> {
+            is Msg.Options -> {
                 val m = update(msg, model.options)
-                model.copy(options= m)
+                model.copy(options = m)
             }
             is Msg.Action.GotOrig -> model
         }
-
-
     }
 
-    private fun update(msg: Msg.Options, model: MOptions) : MOptions {
-        return when(msg) {
+    private fun update(msg: Msg.Options, model: MOptions): MOptions {
+        return when (msg) {
             is Msg.Options.ItemSelected -> {
                 val m = update(msg, model.itemOption)
                 model.copy(itemOption = m)
@@ -117,7 +111,7 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
         }
     }
 
-    fun update(msg: Msg.Options.ItemSelected, model: MItemOption) : MItemOption {
+    fun update(msg: Msg.Options.ItemSelected, model: MItemOption): MItemOption {
         val selected = ItemOption.byId(msg.item.itemId)
         if (selected == null) {
             return MItemOption(handled = false)
@@ -128,11 +122,10 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
 
     override fun view(model: Model, pre: Model?) {
         val setup = {
-
         }
 
         checkView(setup, model, pre) {
-            view(model.activity, pre?.activity )
+            view(model.activity, pre?.activity)
         }
     }
 
@@ -142,16 +135,15 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
         }
 
         checkView(setup, model, pre) {
-                view(model.fab, pre?.fab)
-                view(model.toolbar, pre?.toolbar)
-                view(model.pager, pre?.pager)
+            view(model.fab, pre?.fab)
+            view(model.toolbar, pre?.toolbar)
+            view(model.pager, pre?.pager)
         }
     }
 
 
-    private fun view(model: MViewPager, pre: MViewPager?){
+    private fun view(model: MViewPager, pre: MViewPager?) {
         val setup = {
-
             // Create the adapter that will return a fragment for each of the three
             // primary sections of the activity.
             val mSectionsPagerAdapter = SectionsPagerAdapter(me.supportFragmentManager)
@@ -182,21 +174,17 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
 
     private fun view(model: MFab, pre: MFab?) {
         val setup = {
-
-
             val fab = me.fab
-            fab.setOnClickListener { view -> dispatch(Msg.Fab.Clicked(view))}
-
+            fab.setOnClickListener { view -> dispatch(Msg.Fab.Clicked(view)) }
         }
 
         checkView(setup, model, pre) {
-                        view(model.snackbar, pre?.snackbar)
+            view(model.snackbar, pre?.snackbar)
         }
     }
 
     private fun view(model: MSnackbar, pre: MSnackbar?) {
         val setup = {
-
         }
 
         checkView(setup, model, pre) {
@@ -213,10 +201,6 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
 ////            view(myModel.activity, pre?.activity )
 //    }
 }
-
-
-
-
 
 
 /**
