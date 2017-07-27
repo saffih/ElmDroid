@@ -3,17 +3,13 @@ package elmdroid.elmdroid.example
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.NavigationView
 import android.support.design.widget.Snackbar
 import android.support.v4.view.GravityCompat
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.ActionBarDrawerToggle
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.Toolbar
 import android.view.MenuItem
 import android.view.View
-import android.widget.TextView
 import android.widget.Toast
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
@@ -22,9 +18,11 @@ import elmdroid.elmdroid.example3.MapsActivity
 import elmdroid.elmdroid.example3orig.MapsActivityOrig
 import elmdroid.elmdroid.example4.TabbedActivity
 import elmdroid.elmdroid.example5.ItemListActivity
+import kotlinx.android.synthetic.main.activity_show_case.*
+import kotlinx.android.synthetic.main.app_bar_show_case.*
+import kotlinx.android.synthetic.main.nav_header_showcase.view.*
 import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
-import us.feras.mdv.MarkdownView
 
 
 /**
@@ -119,7 +117,7 @@ sealed class DrawerOption {
 }
 
 
-class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
+class ShowCaseElm(override val me: ShowCase) : ElmBase<Model, Msg>(me),
         NavigationView.OnNavigationItemSelectedListener {
 
     override fun init(): Pair<Model, Que<Msg>> {
@@ -245,7 +243,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
     private fun view(model: MActivity, pre: MActivity?) {
         val setup = {
             me.setContentView(R.layout.activity_show_case)
-            val markdownView = me.findViewById(R.id.markdownView) as MarkdownView
+            val markdownView = me.markdownView
             markdownView.loadMarkdownFile("https://raw.githubusercontent.com/saffih/ElmDroid/master/README.md")
         }
         checkView(setup, model, pre) {
@@ -258,7 +256,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
 
     private fun view(model: MToolbar, pre: MToolbar?) {
         val setup = {
-            val toolbar = me.findViewById(R.id.toolbar) as Toolbar
+            val toolbar = me.toolbar
             me.setSupportActionBar(toolbar)
         }
         checkView(setup, model, pre) {
@@ -268,7 +266,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
 
     private fun view(model: MFab, pre: MFab?) {
         val setup = {
-            val fab = me.findViewById(R.id.fab) as FloatingActionButton
+            val fab = me.fab
             fab.setOnClickListener { view -> dispatch(Msg.Fab.Clicked(view)) }
         }
 
@@ -287,7 +285,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
 
     private fun view(model: MOptions, pre: MOptions?) {
         val setup = {
-            val navigationView = me.findViewById(R.id.nav_view) as NavigationView
+            val navigationView = me.nav_view
             navigationView.setNavigationItemSelectedListener(this)
         }
         checkView(setup, model, pre) {
@@ -299,15 +297,15 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
 
     private fun view(model: MDrawer, pre: MDrawer?) {
         val setup = {
-            val drawer = me.findViewById(R.id.drawer_layout) as DrawerLayout
-            val navView = me.findViewById(R.id.nav_view) as NavigationView
+            val drawer = me.drawer_layout
+            val navView = me.nav_view
             val parentLayout = navView.getHeaderView(0)
-            val nameView = parentLayout.findViewById(R.id.nameTextView) as TextView
+            val nameView = parentLayout.nameTextView
             val name = me.resources.getString(R.string.twitter_account)
             nameView.text = "@" + name
             nameView.setOnClickListener { view -> dispatch(Msg.Action.OpenTwitter(name)) }
 
-            val toolbar = me.findViewById(R.id.toolbar) as Toolbar
+            val toolbar = me.toolbar
 
             val toggle = ActionBarDrawerToggle(
                     me, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
@@ -325,7 +323,7 @@ class ShowCaseElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me),
         }
 
         checkView(setup, model, pre) {
-            val drawer = me.findViewById(R.id.drawer_layout) as DrawerLayout
+            val drawer = me.drawer_layout
             when (model.i) {
                 DrawerOption.opened -> drawer.openDrawer(GravityCompat.START)
                 DrawerOption.closed -> drawer.closeDrawer(GravityCompat.START)

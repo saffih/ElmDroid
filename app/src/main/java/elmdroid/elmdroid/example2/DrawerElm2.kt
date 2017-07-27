@@ -2,19 +2,18 @@ package elmdroid.elmdroid.example2
 
 import android.content.Context
 import android.content.Intent
-import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.NavigationView
 import android.support.design.widget.Snackbar
 import android.support.v4.view.GravityCompat
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.ActionBarDrawerToggle
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.Toolbar
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example2orig.Example2OrigDrawer
+import kotlinx.android.synthetic.main.app_bar_drawer.*
+import kotlinx.android.synthetic.main.nav_activity_drawer.*
 import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
 
@@ -125,7 +124,7 @@ data class MNavOption(val toDisplay: Boolean = true, val nav: NavOption? = null)
 data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 
-class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
+class ElmApp(override val me: DrawerExample) : ElmBase<Model, Msg>(me) ,
         NavigationView.OnNavigationItemSelectedListener {
     override fun init() = ret(Model(), Msg.Init)
 
@@ -265,7 +264,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
 
     private fun  view(model: MOptions, pre: MOptions?) {
         val setup = {
-            val navigationView = me.findViewById(R.id.nav_view) as NavigationView
+            val navigationView = me.nav_view
             navigationView.setNavigationItemSelectedListener(this)
         }
         checkView( setup , model, pre) {
@@ -277,9 +276,9 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
 
     private fun  view(model: MDrawer, pre: MDrawer?) {
         val setup = {
-            val drawer = me.findViewById(R.id.drawer_layout) as DrawerLayout
+            val drawer = me.drawer_layout
 
-            val toolbar = me.findViewById(R.id.toolbar) as Toolbar
+            val toolbar = me.toolbar
 
             val toggle = ActionBarDrawerToggle(
                     me, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
@@ -296,7 +295,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
         }
 
         checkView( setup , model, pre) {
-            val drawer = me.findViewById(R.id.drawer_layout) as DrawerLayout
+            val drawer = me.drawer_layout
             when (model.i) {
                 DrawerOption.opened -> drawer.openDrawer(GravityCompat.START)
                 DrawerOption.closed -> drawer.closeDrawer(GravityCompat.START)
@@ -317,7 +316,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
 
     fun view(model: MToolbar, pre: MToolbar?) {
         val setup = {
-            val toolbar = me.findViewById(R.id.toolbar) as Toolbar
+            val toolbar = me.toolbar
             me.setSupportActionBar(toolbar)
         }
         checkView( setup , model, pre) {
@@ -327,7 +326,7 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) ,
 
     fun view(model: MFab, pre: MFab?) {
         val setup = {
-            val fab = me.findViewById(R.id.fab) as FloatingActionButton
+            val fab = me.fab
             // Listen for a click on a FAB view and send it's viewId.
             fab.setOnClickListener {
                 dispatch(Msg.Fab.Clicked(v=ViewId(it.id)))}

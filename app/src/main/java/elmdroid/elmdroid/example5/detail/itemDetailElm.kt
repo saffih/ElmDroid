@@ -2,15 +2,14 @@ package elmdroid.elmdroid.example5.detail
 
 import android.content.Context
 import android.os.Bundle
-import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.Toolbar
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import elmdroid.elmdroid.R
+import elmdroid.elmdroid.example5.ItemDetailActivity
 import elmdroid.elmdroid.example5.ItemDetailFragment
+import kotlinx.android.synthetic.main.activity_item_detail.*
 import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
 
@@ -74,7 +73,7 @@ data class MSnackbarAction (val name : String="Action name",
 data class MOptions(val itemOption: MItemOption = MItemOption())
 data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
-class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
+class ItemDetailElm(override val me: ItemDetailActivity) : ElmBase<Model, Msg>(me) {
     var savedInstanceState: Bundle? = null
     fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate()
@@ -211,7 +210,7 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
 
     private fun view(model: MFab, pre: MFab?) {
         val setup = {
-            val fab = me.findViewById(R.id.fab) as FloatingActionButton
+            val fab = me.fab
             fab.setOnClickListener { view -> dispatch(Msg.Fab.Clicked(MFabClicked(view)))}
         }
         checkView(setup, model, pre){
@@ -242,7 +241,7 @@ class ItemDetailElm(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me
 
     private fun view(model: MToolbar, pre: MToolbar?) {
         val setup = {
-            val toolbar = me.findViewById(R.id.detail_toolbar) as Toolbar
+            val toolbar = me.detail_toolbar
             me.setSupportActionBar(toolbar)
         }
 

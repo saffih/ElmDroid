@@ -4,9 +4,9 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.telephony.SmsMessage
 import android.widget.TextView
-import android.widget.ToggleButton
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example1.hello.Turtle
+import kotlinx.android.synthetic.main.activity_helloworld.*
 import saffih.elmdroid.*
 import saffih.elmdroid.sms.child.SmsChild
 import elmdroid.elmdroid.example1.hello.Model as HelloModel
@@ -44,7 +44,7 @@ sealed class Msg {
 }
 
 
-class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
+class ElmApp(override val me: ExampleHelloWorldActivity) : ElmBase<Model, Msg>(me) {
     private val sms = bindState(object : SmsChild(me) {
         override fun onSmsArrived(sms: List<SmsMessage>) {
             sms.forEach { onSmsArrived(it) }
@@ -123,12 +123,13 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
 
     private fun view(model: Greeting, pre: Greeting?) {
         val setup = {
-            val v = me.findViewById(R.id.greetingToggleButton) as ToggleButton
+            val v = me.greetingToggleButton
             v.setOnClickListener { v -> dispatch(Msg.Activity.GreetedToggle()) }
         }
         checkView(setup, model, pre) {
-            val view = me.findViewById(R.id.greetingText) as TextView
-            view.text = model.greet
+            val view = me.greetingText as TextView
+            me.greetingText.text.clear();
+            me.greetingText.text.append(model.greet)
         }
     }
 

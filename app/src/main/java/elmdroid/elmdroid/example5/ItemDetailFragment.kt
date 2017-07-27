@@ -1,16 +1,14 @@
 package elmdroid.elmdroid.example5
 
-import android.app.Activity
-import android.support.design.widget.CollapsingToolbarLayout
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-
 import elmdroid.elmdroid.R
 import elmdroid.elmdroid.example5.itemlist.MItem
+import kotlinx.android.synthetic.main.activity_item_detail.*
+import kotlinx.android.synthetic.main.item_detail.view.*
 
 /**
  * A fragment representing a single Item detail screen.
@@ -40,8 +38,8 @@ class ItemDetailFragment : Fragment() {
             val key = arguments.getString(ItemDetailFragment.ARG_ITEM_ID)
             mItem = ItemListActivity.itemListActivity!!.model.activity.byId.get(key)
 
-            val activity = this.activity
-            val appBarLayout = activity.findViewById(R.id.toolbar_layout) as CollapsingToolbarLayout
+            val activity = this.activity as ItemDetailActivity
+            val appBarLayout = activity.toolbar_layout
                 appBarLayout.title = mItem!!.content
         }
     }
@@ -52,7 +50,7 @@ class ItemDetailFragment : Fragment() {
 
         // Show the dummy content as text in a TextView.
         if (mItem != null) {
-            (rootView.findViewById(R.id.item_detail) as TextView).text = mItem!!.details
+            rootView.item_detail.text = mItem!!.details
         }
 
         return rootView

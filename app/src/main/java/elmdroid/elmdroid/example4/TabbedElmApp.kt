@@ -2,20 +2,17 @@ package elmdroid.elmdroid.example4
 
 import android.content.Intent
 import android.os.Bundle
-import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentPagerAdapter
-import android.support.v4.view.ViewPager
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.Toolbar
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import elmdroid.elmdroid.R
+import kotlinx.android.synthetic.main.activity_tabbed.*
 import saffih.elmdroid.ElmBase
 import saffih.elmdroid.Que
 
@@ -64,7 +61,7 @@ data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null
 
 // TOs transfer objects
 
-class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me){
+class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me){
     override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())
     }
@@ -160,7 +157,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
             val mSectionsPagerAdapter = SectionsPagerAdapter(me.supportFragmentManager)
 
             // Set up the ViewPager with the sections adapter.
-            val mViewPager = me.findViewById(R.id.container) as ViewPager
+            val mViewPager = me.container
             mViewPager.adapter = mSectionsPagerAdapter
 
         }
@@ -173,7 +170,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
 
     private fun view(model: MToolbar, pre: MToolbar?) {
         val setup = {
-            val toolbar = me.findViewById(R.id.toolbar) as Toolbar
+            val toolbar = me.toolbar
             me.setSupportActionBar(toolbar)
 
         }
@@ -187,7 +184,7 @@ class TabbedElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me)
         val setup = {
 
 
-            val fab = me.findViewById(R.id.fab) as FloatingActionButton
+            val fab = me.fab
             fab.setOnClickListener { view -> dispatch(Msg.Fab.Clicked(view))}
 
         }

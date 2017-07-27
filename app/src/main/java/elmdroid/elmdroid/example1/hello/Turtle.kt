@@ -1,9 +1,7 @@
 package elmdroid.elmdroid.example1.hello
 
-import android.support.v7.app.AppCompatActivity
-import android.widget.TextView
-import android.widget.ToggleButton
-import elmdroid.elmdroid.R
+import elmdroid.elmdroid.example1.ExampleHelloWorldActivity
+import kotlinx.android.synthetic.main.activity_helloworld.*
 import saffih.elmdroid.ElmChild
 import saffih.elmdroid.Que
 
@@ -54,7 +52,7 @@ sealed class Msg {
 }
 
 
-class Turtle(val me: AppCompatActivity) :
+class Turtle(val me: ExampleHelloWorldActivity) :
         ElmChild<Model, Msg>() {
     override fun init(): Pair<Model, Que<Msg>> {
         return ret(Model(), Msg.Init())
@@ -118,7 +116,7 @@ class Turtle(val me: AppCompatActivity) :
     private fun view(model: MUIMode, pre: MUIMode?) {
         val setup = {}
         checkView(setup, model, pre) {
-            val mode = me.findViewById(R.id.turtleFaster) as ToggleButton
+            val mode = me.turtleFaster
             mode.text = if (model.faster) "faster" else "slower"
             mode.setOnClickListener { dispatch(Msg.UI.ToggleClicked()) }
         }
@@ -127,8 +125,7 @@ class Turtle(val me: AppCompatActivity) :
     private fun view(model: MSpeed, pre: MSpeed?) {
         val setup = {}
         checkView(setup, model, pre) {
-            val v0 = me.findViewById(R.id.turtleSpeed)
-            val v = me.findViewById(R.id.turtleSpeed) as TextView
+            val v = me.turtleSpeed
             v.text = model.speed.name
             v.setOnClickListener { dispatch(Msg.UI.NextSpeedClicked()) }
         }
