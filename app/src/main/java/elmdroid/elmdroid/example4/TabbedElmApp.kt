@@ -20,6 +20,11 @@ import saffih.elmdroid.ElmBase
  * Created by saffi on 29/04/17.
  */
 
+
+/**
+ * class wrapping the id provided by ui,
+ * providing strong typed data type
+ */
 enum class ItemOption(val id: Int) {
     settings(R.id.action_settings);
 
@@ -29,6 +34,9 @@ enum class ItemOption(val id: Int) {
     }
 }
 
+/**
+ * Nested hierarchy of handled messages
+ */
 sealed class Msg {
     class Init : Msg()
     sealed class Fab : Msg() {
@@ -44,6 +52,9 @@ sealed class Msg {
     }
 }
 
+/**
+ * Immutable Model
+ */
 data class Model(val activity: MActivity = MActivity())
 data class MActivity(
         val pager: MViewPager = MViewPager(),
@@ -59,8 +70,9 @@ data class MSnackbar(val i: Int = 0)
 data class MItemOption(val handled: Boolean = true, val item: ItemOption? = null)
 
 
-// TOs transfer objects
-
+/**
+ * State machine for the app and derived view
+ */
 class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me) {
     override fun init(): Model {
         dispatch(Msg.Init())
@@ -191,15 +203,6 @@ class TabbedElmApp(override val me: TabbedActivity) : ElmBase<Model, Msg>(me) {
             //            view(myModel.activity, pre?.activity )
         }
     }
-
-
-//    val setup = {
-//
-//    }
-//
-//    checkView(setup, myModel, pre) {
-////            view(myModel.activity, pre?.activity )
-//    }
 }
 
 

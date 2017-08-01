@@ -29,7 +29,6 @@ package saffih.elmdroid
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
@@ -38,17 +37,17 @@ import android.util.Log
 import android.widget.Toast
 
 
-abstract class MsgQue<MSG>(looper: Looper?, val what: Int) : Handler(looper) {
-    constructor(what: Int) : this(Looper.getMainLooper(), what)
-    constructor() : this(Looper.getMainLooper(), 0)
+val mainLooper by lazy { Looper.getMainLooper() }
 
+abstract class MsgQue<MSG>(looper: Looper?, val what: Int) : Handler(looper) {
+    constructor(what: Int) : this(mainLooper, what)
+    constructor() : this(mainLooper, 0)
     override fun handleMessage(msg: Message?) {
         val cur = msg?.obj as MSG
         handleMSG(cur)
     }
 
     abstract fun handleMSG(cur: MSG)
-
     open fun dispatch(msg: MSG) {
         val m = Message.obtain(null, what, msg)
         sendMessage(m)
@@ -137,15 +136,13 @@ abstract class ElmChildAdapter<M, MSG>(val delegate: ElmPattern<M, MSG>) : ElmCh
     override fun view(model: M, pre: M?) = delegate.view(model, pre)
 }
 
-private val TAG: String = StateEngine::class.java.name
 
 
 abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
+    private val TAG: String = StateEngine::class.java.name
     var cnt = 0
     open val what: Int = 1
-    open val looper: Looper get () {
-        return Looper.getMainLooper()
-    }
+    open val looper: Looper get () = mainLooper
     override val que: MsgQue<MSG> by lazy {
         object : MsgQue<MSG>(this@StateEngine.looper, this@StateEngine.what) {
             override fun handleMSG(cur: MSG) {
@@ -153,7 +150,6 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
             }
         }
     }
-
 
     fun handleMSG(cur: MSG) {
         if (halted) return
@@ -214,9 +210,12 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
 
 abstract class ElmEngine<M, MSG> : StateEngine<M, MSG>(), Viewable<M> {
     override fun onCreate() {
-        super.onCreate()
-        val model = myModel
-        callView(model)
+        // make that done properly ques and dispatches later
+        que.post {
+            super.onCreate()
+            val model = myModel
+            callView(model)
+        }
     }
 
     override fun onDestroy() {
@@ -257,11 +256,11 @@ abstract class StateBase<M, MSG>(open val me: Context?) : StateEngine<M, MSG>() 
 
 
 fun Context.post(posted: () -> Unit): Boolean {
-    return Handler(this.mainLooper).post(posted)
+    return Handler(mainLooper).post(posted)
 }
 
 fun Context.toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
-    val h = Handler(this.mainLooper)
+    val h = Handler(mainLooper)
     h.post({ Toast.makeText(this, txt, duration).show() })
 }
 
@@ -280,7 +279,7 @@ abstract class ElmBase<M, MSG>(open val me: Context?) : ElmEngine<M, MSG>() {
 
     // Get a handler that can be used to post to the main thread
     // it is lazy since it is created after the view exist.
-    val mainHandler by lazy { Handler(me?.mainLooper) }
+    val mainHandler by lazy { Handler(mainLooper) }
 
     //     cross thread communication
     protected fun post(function: () -> Unit) {
@@ -299,51 +298,13 @@ private class Memoize1<in T, out R>(val f: (T) -> R) : (T) -> R {
 
 fun <T, R> ((T) -> R).memoize(): (T) -> R = Memoize1(this)
 
-
-// todo should use list of all perms
-fun activityCheckForPermission(me: Activity, perm: String, code: Int,
-                               showExplanation: (() -> Unit)? = null): Boolean {
-    fun toast(txt: String, duration: Int = Toast.LENGTH_SHORT) {
-        me.post({ Toast.makeText(me, txt, duration).show() })
-    }
-
-    val pm = me.packageManager
-    val hasPerm = pm.checkPermission(perm, me.packageName)
-    if (hasPerm == PackageManager.PERMISSION_GRANTED) {
-        return true
-    }
-    val permissionCheck = ContextCompat.checkSelfPermission(me, perm)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-            // Should we show an explanation?
-            if (me.shouldShowRequestPermissionRationale(perm)) {
-
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-                if (showExplanation == null) toast("must have permissions ${perm}") else showExplanation()
-            } else {
-                // No explanation needed, we can request the permission.
-                me.requestPermissions(listOf(perm).toTypedArray(), code)
-
-            }
-        }
-    }
-    val recheck = ContextCompat.checkSelfPermission(me, perm)
-    val res = (recheck == PackageManager.PERMISSION_GRANTED)
-    return res
-
-}
-
-// todo should use list of all perms
+//// todo should use list of all perms
 fun Activity.activityCheckForPermission(perm: List<String>, code: Int): Boolean {
     val me = this
     val missing = perm.filter { ContextCompat.checkSelfPermission(me, it) != PackageManager.PERMISSION_GRANTED }
     if (missing.isEmpty()) return true
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        me.requestPermissions(missing.toTypedArray(), code)
-    }
+//    me.requestPermissions(missing.toTypedArray(), code)
     val recheck = missing.map { ContextCompat.checkSelfPermission(me, it) != PackageManager.PERMISSION_GRANTED }.all { it == true }
     return recheck
 

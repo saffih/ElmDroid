@@ -11,9 +11,9 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import elmdroid.elmdroid.R
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.activityCheckForPermission
 import saffih.elmdroid.gps.GpsElmServiceClient
 import saffih.elmdroid.gps.GpsLocalService
+import saffih.elmdroid.permissionGranted
 import saffih.elmdroid.post
 import saffih.elmdroid.service.LocalServiceClient
 import saffih.elmdroid.service.client.MService
@@ -75,8 +75,7 @@ class ElmApp(override val me: FragmentActivity) : ElmBase<Model, Msg>(me), OnMap
 
     fun getPerm(): Boolean {
         val perm = Manifest.permission.ACCESS_FINE_LOCATION
-        val code = 1
-        return activityCheckForPermission(me, perm, code)
+        return me.permissionGranted(perm)
     }
 
     // example using local service
