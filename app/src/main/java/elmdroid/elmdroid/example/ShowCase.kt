@@ -6,7 +6,12 @@ import android.view.Menu
 import android.view.MenuItem
 import elmdroid.elmdroid.R
 
+
+/**
+ * Main activity
+ */
 class ShowCase : AppCompatActivity() {
+    // actual implementation
     val app = ShowCaseElm(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {

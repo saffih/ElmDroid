@@ -2,20 +2,28 @@ package elmdroid.elmdroid
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import saffih.elmdroid.ElmBase
-import saffih.elmdroid.MsgQue
 
 /**
  * Example local unit test, which will execute on the development machine (host).
 
  * @see [Testing documentation](http://d.android.com/tools/testing)
  */
-class FiboElmBaseTest {
+@RunWith(RobolectricTestRunner::class)
+@Config(constants = BuildConfig::class, sdk = intArrayOf(25))
+class FiboElmBaseTestWithRobo {
 
     @Test
     @Throws(Exception::class)
     fun testFibo() {
-        val app = App()
+        val app = AppBase()
+        testFiboApp(app)
+    }
+
+    private fun testFiboApp(app: AppBase) {
         app.onCreate()
         app.dispatch(msg = Msg.Next())
         assertEquals(1, app.last())
@@ -29,14 +37,11 @@ class FiboElmBaseTest {
         assertEquals(app.last(), 8)
         app.dispatch(msg = Msg.Next())
         assertEquals(app.last(), 13)
-        // there is one not consumed but we do reset
 
         app.dispatch(msg = Msg.Reset())
         app.dispatch(msg = Msg.Next(4))
-        app.consume() // we wait...
         assertEquals(5, app.last())
         app.dispatch(msg = Msg.Reset())
-        app.consume() // we wait...
         assertEquals(app.last(), 1)
     }
 
@@ -49,47 +54,7 @@ class FiboElmBaseTest {
         class Update(val model: Model) : Msg()
     }
 
-
-    class App : ElmBase<Model, Msg>(me = null) {
-        var l = listOf<Msg>()
-
-        override val que: MsgQue<Msg>
-            get() = object : MsgQue<Msg>(null, 0) {
-                override fun handleMSG(cur: Msg) {
-                    this@App.handleMSG(cur)
-                }
-
-                override fun dispatch(msg: Msg) {
-                    l = l + msg
-                    consume()
-
-                }
-            }
-        var busy = false
-        fun consume() {
-            if (busy) return
-            busy = true
-            while (true) {
-                val l2 = l
-                l = listOf()
-                if (l2.isEmpty()) break
-                l2.map {
-                    handleMSG(it)
-                }
-            }
-            busy = false
-        }
-
-        override fun dispatch(msg: Msg) {
-            // consume if first if not just append
-            consume()
-            l += msg
-        }
-
-        override fun hasMessages(): Boolean {
-            return l.isNotEmpty()
-        }
-
+    open class AppBase : ElmBase<Model, Msg>(me = null) {
         override fun init(): Model {
             //                Model(A(0),B(1)))
             dispatch(Msg.Reset())
@@ -131,5 +96,6 @@ class FiboElmBaseTest {
                 res = model.b.v
             }
         }
+
     }
 }

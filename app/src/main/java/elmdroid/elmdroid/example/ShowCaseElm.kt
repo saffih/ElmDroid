@@ -30,6 +30,11 @@ import saffih.elmdroid.ElmBase
  */
 
 // UI options
+/**
+ * class wrapping the id provided by ui,
+ * providing strong typed data type
+ * support reverse lookup
+ */
 enum class NavOption(val id: Int) {
     HelloWorld(R.id.nav_helloworld),
     Drawer(R.id.nav_drawer),
@@ -45,6 +50,11 @@ enum class NavOption(val id: Int) {
     }
 }
 
+/**
+ * class wrapping the id provided by ui,
+ * providing strong typed data type
+ * support reverse lookup
+ */
 enum class ItemOption(val id: Int) {
     settings(R.id.action_settings);
 
@@ -55,6 +65,9 @@ enum class ItemOption(val id: Int) {
 }
 
 
+/**
+ * Nested hierarchy of handled messages
+ */
 sealed class Msg {
     class Init : Msg()
     sealed class Fab : Msg() {
@@ -73,6 +86,9 @@ sealed class Msg {
     }
 }
 
+/**
+ * shugaring extention
+ */
 fun Msg.Action.UIToast.show(me: Context) {
     val toast = Toast.makeText(me, txt, duration)
     toast.show()
