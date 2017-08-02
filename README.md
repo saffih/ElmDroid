@@ -47,23 +47,24 @@ the code `return when(msg)` with code block matching the msg type.
 The code return the new state for the sub model and optional Msg command.
 
 ```kotlin
-override fun update(msg: Msg, model: Model): MC<Model, Msg> {
+override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
-            is Msg.Init -> ret(model)
+            is Msg.Init -> model
             else -> {
-                val (sm, sc) = update(msg, model.activity)
-                ret(model.copy(activity = sm), sc)
+                val m = update(msg, model.activity)
+                model.copy(activity = m)
             }
         }
     }
     
-    fun update(msg: Msg.Fab, model:MFab ): MC<MFab, Msg> {
+    fun update(msg: Msg.Fab, model:MFab ): MFab {
         return when (msg){
-            is Msg.Fab.Clicked -> 
-                ret(model.copy(clicked = msg.v),
-                        Msg.Fab.ClickedDone(msg))
+            is Msg.Fab.Clicked -> {
+                dispatch(Msg.Fab.ClickedDone(msg))
+                model.copy(clicked = msg.v)
+            }
             is Msg.Fab.ClickedDone ->
-                ret(model.copy(clicked = null))
+                model.copy(clicked = null)
         }
     }
 ```
@@ -110,51 +111,63 @@ In cases we need to interact from the outside (`timer`...) use `postDispatch`
 
 ```kotlin
 // POJO
-class Greating(val greet:String)
-val intialGreating = Greating("Hello")
+class Greeting(val greet: String)
+
+val intialGreating = Greeting("Hello")
 
 // MODEL
-data class Model (val activity : MActivity= MActivity())
-data class MActivity (val greeting: Greating= intialGreating)
+data class Model(val activity: MActivity = MActivity())
+data class MActivity(val greeting: Greeting = intialGreating)
 
 // MSG
 sealed class Msg {
-    object Init: Msg()
-    sealed class Activity(): Msg(){
-        class Greated(val v:Greating): Activity()
-        class GreatedToggle : Activity()
+    object Init : Msg()
+    sealed class Activity : Msg() {
+        class Greeted(val v: Greeting) : Activity()
+        class GreetedToggle : Activity()
     }
 }
 
-class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
-    override fun init(): MC<Model, Msg> { return ret(Model(), Msg.Init) }
 
-    override fun update(msg: Msg, model: Model): MC<Model, Msg> {
+class ElmApp(override val me: HelloWorldActivity) : ElmBase<Model, Msg>(me) {
+    override fun init(): Model {
+        dispatch(Msg.Init)
+        return Model()
+    }
+
+    override fun update(msg: Msg, model: Model): Model {
         return when (msg) {
-            is Msg.Init -> ret(model)
-            is Msg.Activity -> {
-                // several updates
-                val (sm, sc) = update(msg, model.activity)
+            is Msg.Init -> { // init delegation to components...
+                model
+            }
+            is Msg.Activity -> { 
+                val m = update(msg, model.activity)
+                model.copy(activity = m)
+            }
+            // other group updates if had.  
+        }
+    }
 
-                ret(model.copy(activity= sm), sc)
+    fun update(msg: Msg.Activity, model: MActivity): MActivity {
+        return when (msg) {
+            is Msg.Activity.Greeted -> {
+                model.copy(greeting = msg.v)
+            }
+            is Msg.Activity.GreetedToggle -> {
+                val v = if (model.greeting == intialGreating) Greeting("world") else intialGreating
+                // simpler code which does not show the use of dispatch from within an update
+                // would have been:
+                //     model.copy(greeting = v)
+                // but instead we do a dispatch that would be hanled later by the when branch above.
+                dispatch(Msg.Activity.Greeted(v))
+                model
             }
         }
     }
 
-    fun update(msg: Msg.Activity, model: MActivity) :MC<MActivity, Msg>  {
-        return when (msg) {
-            is Msg.Activity.Greated -> {
-                ret(model.copy(greeting = msg.v))
-            }
-            is Msg.Activity.GreatedToggle -> {
-                val v = if (model.greeting==intialGreating) Greating("world") else intialGreating
-                ret(model, Msg.Activity.Greated(v))
-            }
-        } 
-    }
 
     /**
-     * Render view, app delegates model review changes to children
+     * Render view, app delegates myModel review changes to children
      */
     override fun view(model: Model, pre: Model?) {
         val setup = { }
@@ -164,33 +177,39 @@ class ElmApp(override val me: AppCompatActivity) : ElmBase<Model, Msg>(me) {
     }
 
     /**
-     * Activity child setup the layout view. if has changes delegate render to child views
+     * Activity impl setup the layout view. if has changes delegate render to impl views
      */
-    private fun  view(model: MActivity, pre: MActivity?) {
-        val setup = { me.setContentView(R.layout.activity_example) }
-        
+    private fun view(model: MActivity, pre: MActivity?) {
+        val setup = { me.setContentView(R.layout.activity_helloworld) }
+
         checkView(setup, model, pre) {
             view(model.greeting, pre?.greeting)
         }
     }
 
-    private fun  view(model: Greating, pre: Greating?) {
+    private fun view(model: Greeting, pre: Greeting?) {
         val setup = {
-            val v = me.findViewById(R.id.greetingToggleButton) as ToggleButton
-            v.setOnClickListener { v -> dispatch(Msg.Activity.GreatedToggle()) }
+            me.greetingToggleButton.setOnClickListener { 
+                v -> dispatch(Msg.Activity.GreetedToggle()) 
+            }
         }
         checkView(setup, model, pre) {
-            val view=me.findViewById(R.id.greetingText) as TextView
-            view.text = model.greet
+            me.greetingText.text.clear()
+            me.greetingText.text.append(model.greet)
         }
     }
 }
 
-class ExampleActivity : AppCompatActivity() {
+class HelloWorldActivity : AppCompatActivity() {
     val app = ElmApp(this)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app.mainLoop()
+        app.onCreate()
+    }
+
+    override fun onDestroy() {
+        app.onDestroy()
+        super.onDestroy()
     }
 }
 ```
