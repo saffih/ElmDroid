@@ -156,13 +156,18 @@ abstract class StateEngine<M, MSG> : StatePattern<M, MSG> {
         cnt += 1
 
         val res = update(cur, myModel)
-        Log.d(TAG, "Msg: $cur \n Model: $myModel \n ===> $res")
+        val s = "Msg: $cur \n Model: $myModel \n ===> $res"
+        logd(s)
         mc = res
         if (cnt > 1000) throw RuntimeException("Do we have a loop $cnt, last msg was $cur")
         if (!hasMessages()) {
             cnt = 0
             onQueIsEmpty()
         }
+    }
+
+    open protected fun logd(s: String) {
+        Log.d(TAG, s)
     }
 
     open fun hasMessages(): Boolean {
