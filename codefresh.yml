@@ -1,0 +1,27 @@
+version: '1.0'
+stages:
+  - prepare
+  - test
+  - build
+steps:
+  main_clone:
+    title: Cloning main repository...
+    stage: prepare
+    type: git-clone
+    repo: 'saffih/ElmDroid'
+    revision: master
+    git: github
+  TestIt:
+    title: Running Tests
+    stage: test
+    image: nextcloudci/android:android-48
+    commands:
+     - chmod +x ./gradlew
+     - ./gradlew test --no-daemon --gradle-user-home=/codefresh/volume/.gradle
+  BuildIt:
+    title: Packaging Android App
+    stage: build
+    image: nextcloudci/android:android-48
+    commands:
+     - ./gradlew build  --no-daemon --gradle-user-home=/codefresh/volume/.gradle
+
